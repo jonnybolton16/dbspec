@@ -1,2 +1,6 @@
+"""DBSpec command-line interface."""
+
+
 def main() -> None:
-    print("DBSpec CLI started.")
+    """Run the DBSpec command-line interface."""
+    print("DBSpec CLI started.")  # noqa: T201
