@@ -7,6 +7,9 @@ authors = [
 description = "Simplifying SQL Server schema maintenance by utilising human-readable schema specifications"
 readme = "README.md"
 
+[project.scripts]
+dbspec = "dbspec.cli:main"
+
 [build-system]
 requires = [
   "setuptools>=80.9.0",
