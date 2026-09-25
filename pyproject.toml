@@ -8,6 +8,9 @@ authors = [
 description = "Simplifying SQL Server schema maintenance by utilising human-readable schema specifications"
 readme = "README.md"
 
+[project.optional-dependencies]
+dev = ["ruff"]
+
 [project.scripts]
 dbspec = "dbspec.cli:main"
 
@@ -17,6 +20,26 @@ requires = [
   "setuptools-scm[toml]>=8",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+extend-exclude = ["src/dbspec/_version.py"]
+line-length = 79
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "CPY001", # copyright notice, not required
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+
+[tool.ruff.lint.pycodestyle]
+max-doc-length = 72
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.setuptools.packages.find]
 where = ["src"]
