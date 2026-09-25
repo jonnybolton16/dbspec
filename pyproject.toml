@@ -1,0 +1,22 @@
+[project]
+name = "dbspec"
+dynamic = ["version"]
+authors = [
+  { name = "Jonny Bolton", email = "jonny.bolton16@gmail.com" },
+]
+description = "Simplifying SQL Server schema maintenance by utilising human-readable schema specifications"
+readme = "README.md"
+
+[build-system]
+requires = [
+  "setuptools>=80.9.0",
+  "setuptools-scm[toml]>=8",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+version_file = "src/dbspec/_version.py"
