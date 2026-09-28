@@ -9,7 +9,10 @@ description = "Simplifying SQL Server schema maintenance by utilising human-read
 readme = "README.md"
 
 [project.optional-dependencies]
-dev = ["ruff"]
+dev = [
+  "pytest",
+  "ruff",
+]
 
 [project.scripts]
 dbspec = "dbspec.cli:main"
@@ -39,6 +42,12 @@ ignore = [
 
 [tool.ruff.lint.isort]
 force-sort-within-sections = true
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "INP001", # tests is not a package
+  "S101",   # assertions, used by pytest
+]
 
 [tool.ruff.lint.pycodestyle]
 max-doc-length = 72
