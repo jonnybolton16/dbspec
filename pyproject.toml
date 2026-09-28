@@ -1,7 +1,7 @@
 [project]
 name = "dbspec"
 dynamic = ["version"]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
   { name = "Jonny Bolton", email = "jonny.bolton16@gmail.com" },
 ]
@@ -24,12 +24,17 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 extend-exclude = ["src/dbspec/_version.py"]
 line-length = 79
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
+    "COM812", # trailing commas, use formatter instead
     "CPY001", # copyright notice, not required
+    "ERA001", # commented-out code, useful when developing
+    "FIX002", # todos, useful when developing
+    "TD002",  # todo author, not required
+    "TD003",  # todo link, not required
 ]
 
 [tool.ruff.lint.isort]
