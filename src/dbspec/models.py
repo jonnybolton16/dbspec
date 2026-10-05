@@ -8,13 +8,24 @@ from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
+class Identity:
+    """A column identity definition.
+
+    For columns with the `IDENTITY` property.
+    """
+
+    seed: int = 1
+    increment: int = 1
+
+
+@dataclass(frozen=True)
 class Column:
     """A table column definition."""
 
     name: str
     datatype: str
     nullable: bool
-    identity: bool = False
+    identity: Identity | None = None
     default: str | None = None
 
 
