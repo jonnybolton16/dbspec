@@ -4,7 +4,10 @@ Defines the native Python objects used to represent SQL database schema
 objects, including tables, columns and keys.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 
 @dataclass(frozen=True)
@@ -29,35 +32,64 @@ class Column:
     default: str | None = None
 
 
+class ReferentialAction(StrEnum):
+    """A foreign key referential action definition.
+
+    For foreign keys with `ON DELETE`/`ON UPDATE` actions.
+    """
+
+    CASCADE = "CASCADE"
+    NO_ACTION = "NO ACTION"
+    SET_DEFAULT = "SET DEFAULT"
+    SET_NULL = "SET NULL"
+
+
 @dataclass(frozen=True)
-class PrimaryKey:
+class Key:
+    """A base table key definition.
+
+    Subclasses include `PrimaryKey`, `UniqueKey` and `ForeignKey`.
+    """
+
+    columns: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PrimaryKey(Key):
     """A table primary key definition."""
 
-    columns: list[str]
-
 
 @dataclass(frozen=True)
-class UniqueKey:
+class UniqueKey(Key):
     """A table unique key definition."""
 
-    columns: list[str]
+
+@dataclass(frozen=True)
+class ForeignKey(Key):
+    """A table foreign key definition."""
+
+    referenced_table: TableName
+    referenced_columns: tuple[str, ...]
+    on_delete: ReferentialAction = ReferentialAction.NO_ACTION
+    on_update: ReferentialAction = ReferentialAction.NO_ACTION
 
 
 @dataclass(frozen=True)
-class ForeignKey:
-    """A table foreign key definition."""
+class TableName:
+    """A table name definition.
 
-    columns: list[str]
-    referenced_table: str
-    referenced_columns: list[str]
+    For fully-qualified table names, including their schema.
+    """
+
+    schema: str
+    name: str
 
 
 @dataclass(frozen=True)
 class Table:
     """A database table definition."""
 
-    schema: str
-    name: str
+    identifier: TableName
     columns: dict[str, Column] = field(default_factory=dict)
     primary_key: PrimaryKey | None = None
     unique_keys: list[UniqueKey] = field(default_factory=list)
@@ -68,4 +100,4 @@ class Table:
 class Database:
     """A SQL database definition."""
 
-    tables: dict[str, Table] = field(default_factory=dict)
+    tables: dict[TableName, Table] = field(default_factory=dict)

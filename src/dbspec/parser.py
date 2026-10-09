@@ -6,7 +6,7 @@ Utilities for parsing DBSpec files into database schema model objects.
 import re
 
 from dbspec.errors import DBSpecParseError
-from dbspec.models import Column, Identity, Table
+from dbspec.models import Column, Identity, Table, TableName
 
 
 def _extract_fullmatch_groups(
@@ -220,4 +220,5 @@ def parse_table_declaration(declaration: str) -> Table:
         f"Invalid table declaration: {declaration!r}",
         flags=re.IGNORECASE,
     )
-    return Table(schema=schema, name=name)
+    identifier = TableName(schema=schema, name=name)
+    return Table(identifier=identifier)
