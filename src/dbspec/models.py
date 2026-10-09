@@ -45,26 +45,31 @@ class ReferentialAction(StrEnum):
 
 
 @dataclass(frozen=True)
-class PrimaryKey:
+class Key:
+    """A base table key definition.
+
+    Subclasses include `PrimaryKey`, `UniqueKey` and `ForeignKey`.
+    """
+
+    columns: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class PrimaryKey(Key):
     """A table primary key definition."""
 
-    columns: list[str]
-
 
 @dataclass(frozen=True)
-class UniqueKey:
+class UniqueKey(Key):
     """A table unique key definition."""
 
-    columns: list[str]
-
 
 @dataclass(frozen=True)
-class ForeignKey:
+class ForeignKey(Key):
     """A table foreign key definition."""
 
-    columns: list[str]
     referenced_table: TableName
-    referenced_columns: list[str]
+    referenced_columns: tuple[str, ...]
     on_delete: ReferentialAction = ReferentialAction.NO_ACTION
     on_update: ReferentialAction = ReferentialAction.NO_ACTION
 
