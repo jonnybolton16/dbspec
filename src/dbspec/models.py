@@ -4,6 +4,8 @@ Defines the native Python objects used to represent SQL database schema
 objects, including tables, columns and keys.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 
 
@@ -48,16 +50,26 @@ class ForeignKey:
     """A table foreign key definition."""
 
     columns: list[str]
-    referenced_table: str
+    referenced_table: TableName
     referenced_columns: list[str]
+
+
+@dataclass(frozen=True)
+class TableName:
+    """A table name definition.
+
+    For fully-qualified table names, including their schema.
+    """
+
+    schema: str
+    name: str
 
 
 @dataclass(frozen=True)
 class Table:
     """A database table definition."""
 
-    schema: str
-    name: str
+    identifier: TableName
     columns: dict[str, Column] = field(default_factory=dict)
     primary_key: PrimaryKey | None = None
     unique_keys: list[UniqueKey] = field(default_factory=list)
@@ -68,4 +80,4 @@ class Table:
 class Database:
     """A SQL database definition."""
 
-    tables: dict[str, Table] = field(default_factory=dict)
+    tables: dict[TableName, Table] = field(default_factory=dict)
