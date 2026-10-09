@@ -7,6 +7,7 @@ objects, including tables, columns and keys.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,18 @@ class Column:
     default: str | None = None
 
 
+class ReferentialAction(StrEnum):
+    """A foreign key referential action definition.
+
+    For foreign keys with `ON DELETE`/`ON UPDATE` actions.
+    """
+
+    CASCADE = "CASCADE"
+    NO_ACTION = "NO ACTION"
+    SET_DEFAULT = "SET DEFAULT"
+    SET_NULL = "SET NULL"
+
+
 @dataclass(frozen=True)
 class PrimaryKey:
     """A table primary key definition."""
@@ -52,6 +65,8 @@ class ForeignKey:
     columns: list[str]
     referenced_table: TableName
     referenced_columns: list[str]
+    on_delete: ReferentialAction = ReferentialAction.NO_ACTION
+    on_update: ReferentialAction = ReferentialAction.NO_ACTION
 
 
 @dataclass(frozen=True)
