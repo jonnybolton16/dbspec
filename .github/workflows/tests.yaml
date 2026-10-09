@@ -1,0 +1,36 @@
+name: Run Checks & Tests
+
+run-name: "Running checks & tests for PR #${{ github.event.number }}"
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks-and-tests:
+    name: Run checks & tests
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install project and dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run ruff
+        run: |
+          python -m ruff check
+          python -m ruff format --check
+
+      - name: Run pytest
+        run: |
+          python -m pytest
