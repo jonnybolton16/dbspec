@@ -29,6 +29,7 @@ TABLE = "organisations"
 def test_valid(declaration: str) -> None:
     """Parse a valid table declaration."""
     table = parse_table_declaration(declaration)
+    table = table.identifier
 
     assert table.schema == SCHEMA
     assert table.name == TABLE
@@ -37,6 +38,7 @@ def test_valid(declaration: str) -> None:
 def test_valid_with_underscores() -> None:
     """Parse a valid table declaration with underscores in names."""
     table = parse_table_declaration(f"TABLE temp_{SCHEMA}.{TABLE}_v2")
+    table = table.identifier
 
     assert table.schema == "temp_" + SCHEMA
     assert table.name == TABLE + "_v2"
