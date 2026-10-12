@@ -1,13 +1,11 @@
 """DBSpec column declaration parser tests."""
 
-from collections.abc import Iterable
-from typing import Any
-
 import pytest
 
 from dbspec.errors import DBSpecParseError
 from dbspec.models import Column, Identity
 from dbspec.parser import parse_column_declaration
+from tests.utils import case_params
 
 # use a simple valid prefix whenever the test is
 # about clauses rather than column name/type extraction
@@ -44,19 +42,9 @@ MSG_IDENTITY_SPEC = "Invalid IDENTITY specification"
 MSG_MISSING_DEFAULT = "Missing DEFAULT expression"
 
 
-# ----------------
-# Helper functions
-# ----------------
-def case_params(cases: Iterable[tuple[Any, str]]) -> list[pytest.ParameterSet]:
-    """Convert `(value, id)` / `((values...), id)` cases into params."""
-    return [
-        pytest.param(
-            *(values if isinstance(values, tuple) else (values,)), id=case_id
-        )
-        for values, case_id in cases
-    ]
-
-
+# -------------------------
+# Rejection helper function
+# -------------------------
 def reject(declaration: str, message: str) -> None:
     """Reject a column declaration with the expected error message."""
     with pytest.raises(DBSpecParseError, match=message):

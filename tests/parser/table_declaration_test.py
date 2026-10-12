@@ -4,28 +4,22 @@ import pytest
 
 from dbspec.errors import DBSpecParseError
 from dbspec.parser import parse_table_declaration
+from tests.utils import case_params
 
 SCHEMA = "dbo"
 TABLE = "organisations"
 
+VALID_DECLARATIONS = [
+    (f"TABLE {SCHEMA}.{TABLE}", "expected-format"),
+    (f"    TABLE {SCHEMA}.{TABLE}    ", "outer-whitespace"),
+    (f"TABLE    {SCHEMA}.{TABLE}", "inner-whitespace"),
+    (f"TABLE\t{SCHEMA}.{TABLE}", "tab-whitespace"),
+    (f"table {SCHEMA}.{TABLE}", "lowercase-keyword"),
+    (f"Table {SCHEMA}.{TABLE}", "mixed-case-keyword"),
+]
 
-@pytest.mark.parametrize(
-    "declaration",
-    [
-        # expected format
-        f"TABLE {SCHEMA}.{TABLE}",
-        # outer whitespace
-        f"    TABLE {SCHEMA}.{TABLE}    ",
-        # inner whitespace
-        f"TABLE    {SCHEMA}.{TABLE}",
-        # tab whitespace
-        f"TABLE\t{SCHEMA}.{TABLE}",
-        # lowercase keyword
-        f"table {SCHEMA}.{TABLE}",
-        # mixed-case keyword
-        f"Table {SCHEMA}.{TABLE}",
-    ],
-)
+
+@pytest.mark.parametrize("declaration", case_params(VALID_DECLARATIONS))
 def test_valid(declaration: str) -> None:
     """Parse a valid table declaration."""
     table = parse_table_declaration(declaration)
@@ -44,41 +38,26 @@ def test_valid_with_underscores() -> None:
     assert table.name == TABLE + "_v2"
 
 
-@pytest.mark.parametrize(
-    "declaration",
-    [
-        # empty declaration
-        "",
-        # space only
-        "    ",
-        # other whitespace only
-        "\t",
-        # keyword only
-        "TABLE",
-        # schema or name only
-        f"{TABLE}",
-        # missing keyword
-        f"{SCHEMA}.{TABLE}",
-        # missing schema or name
-        f"TABLE {TABLE}",
-        # incorrect keyword
-        f"TABL {SCHEMA}.{TABLE}",
-        # empty schema
-        f"TABLE .{TABLE}",
-        # empty table name
-        f"TABLE {SCHEMA}.",
-        # incorrect schema/table separator (space)
-        f"TABLE {SCHEMA} {TABLE}",
-        # incorrect schema/table separator (punctuation)
-        f"TABLE {SCHEMA}-{TABLE}",
-        # space before separator
-        f"TABLE {SCHEMA} .{TABLE}",
-        # space after separator
-        f"TABLE {SCHEMA}. {TABLE}",
-        # additional name part
-        f"TABLE {SCHEMA}.{TABLE}.extra",
-    ],
-)
+INVALID_DECLARATIONS = [
+    ("", "empty-declaration"),
+    ("    ", "space-only"),
+    ("\t", "other-whitespace-only"),
+    ("TABLE", "keyword-only"),
+    (f"{TABLE}", "schema-or-name-only"),
+    (f"{SCHEMA}.{TABLE}", "missing-keyword"),
+    (f"TABLE {TABLE}", "missing-schema-or-name"),
+    (f"TABL {SCHEMA}.{TABLE}", "incorrect-keyword"),
+    (f"TABLE .{TABLE}", "empty-schema"),
+    (f"TABLE {SCHEMA}.", "empty-table-name"),
+    (f"TABLE {SCHEMA} {TABLE}", "incorrect-separator-space"),
+    (f"TABLE {SCHEMA}-{TABLE}", "incorrect-separator-punctuation"),
+    (f"TABLE {SCHEMA} .{TABLE}", "space-before-separator"),
+    (f"TABLE {SCHEMA}. {TABLE}", "space-after-separator"),
+    (f"TABLE {SCHEMA}.{TABLE}.extra", "additional-name-part"),
+]
+
+
+@pytest.mark.parametrize("declaration", case_params(INVALID_DECLARATIONS))
 def test_invalid(declaration: str) -> None:
     """Reject an invalid table declaration."""
     with pytest.raises(DBSpecParseError):
