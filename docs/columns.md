@@ -21,4 +21,4 @@ Notes:
 - For `IDENTITY` columns, neither or both the `<seed>` and `<increment>` must be provided. If they are provided, they must both be integers. If they are not provided, they both default to 1.
 - All non-`IDENTITY` column declarations must specify their nullability explicitly. `IDENTITY` columns are implicitly `NOT
 NULL`.
-- When including the `DEFAULT` clause, the `<expression>` cannot be empty. The clause must follow the nullability specification, because `NULL` itself can appear in the `<expression>`. The validity of the `<expression>` is checked by SQL Server at execution time, not by `DBSpec` at parse time.
+- When including the `DEFAULT` clause, the `<expression>` cannot be empty. The clause must follow the nullability specification, because `NULL` itself can appear in the `<expression>`. The validity of the `<expression>` is checked by `SQL Server` at execution time, not by `DBSpec` at parse time.

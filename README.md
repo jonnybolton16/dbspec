@@ -1,8 +1,8 @@
 # DBSpec
 
-`DBSpec` simplifies SQL Server schema maintenance by utilising human-readable schema specifications.
+`DBSpec` simplifies `SQL Server` schema maintenance by utilising human-readable schema specifications.
 
-The `.dbspec` file format is a friendly, easy-to-parse format for defining tables, columns and other SQL database objects. These files are automatically converted into **idempotent** SQL queries, allowing complex database schemas to be maintained via simple, readable specification files.
+The `.dbspec` file format is a friendly, easy-to-parse format for defining tables, columns and other SQL database objects. These files are automatically converted into idempotent SQL queries, allowing complex database schemas to be maintained via simple, readable specification files.
 
 ## Usage
 
