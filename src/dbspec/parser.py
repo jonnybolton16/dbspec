@@ -204,15 +204,7 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
 def parse_table_declaration(declaration: str) -> Table:
     """Parse a table declaration into a `Table` object.
 
-    Table declarations are expected to be of the form:
-
-        TABLE <schema>.<table_name>
-
-    For example:
-
-        TABLE dbo.organisations
-
-    The `TABLE` keyword is case-insensitive.
+    See `docs/tables.md` for the expected syntax.
     """
     schema, name = _extract_fullmatch_groups(
         r"TABLE\s+([^.\s]+)\.([^.\s]+)",
