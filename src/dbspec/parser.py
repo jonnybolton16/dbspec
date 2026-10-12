@@ -40,36 +40,10 @@ def _extract_fullmatch_groups(
 
 
 def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
-    # ruff: disable[E501,W505]
     """Parse a column declaration into a `Column` object.
 
-    Column declarations are expected to be of the form:
-
-        <column_name> <data_type> {[NOT] NULL [DEFAULT <expression>] | IDENTITY[(<seed>, <increment>)]}
-
-    For example:
-
-        ???
-
-    Note:
-    - The `NOT`, `NULL`, `DEFAULT`, and `IDENTITY` keywords are
-    case-insensitive.
-    - If the column name contains whitespace, it must be enclosed by
-    square brackets. In such cases, the name itself cannot contain
-    nested square brackets.
-    - All column declarations other than `IDENTITY` columns must specify
-    their nullability explicitly. `IDENTITY` columns are implicitly NOT
-    NULL.
-    - When using the `IDENTITY` option, neither or both the seed and
-    increment must be provided. If they are provided, they must be
-    integers. If they are not provided, they are defaulted to 1.
-    - When using the `DEFAULT` option, the expression cannot be empty.
-    The clause must follow the nullability specification, because `NULL`
-    itself can appear in the `DEFAULT` expression. The validity of the
-    expression is checked by SQL Server at execution time, not at parse
-    time.
+    See `docs/columns.md` for the expected syntax.
     """
-    # ruff: enable[E501,W505]
     # handle empty declaration
     declaration = declaration.strip()
     if not declaration:
