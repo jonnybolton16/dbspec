@@ -5,7 +5,7 @@ import pytest
 from dbspec.errors import DBSpecParseError
 from dbspec.models import Column, Identity
 from dbspec.parser import parse_column_declaration
-from tests.utils import case_params
+from tests.utils import WHITESPACE_SEPARATORS, case_params
 
 # use a simple valid prefix whenever the test is
 # about clauses rather than column name/type extraction
@@ -17,14 +17,6 @@ SIMPLE_NAME_TYPE = f"{SIMPLE_NAME} {SIMPLE_TYPE}"
 # about column name/type extractions rather than clauses
 SIMPLE_NULL_CLAUSE = "NULL"
 SIMPLE_NULL_VALUE = True
-
-# single-line whitespace separators
-WHITESPACE_SEPARATORS = [
-    (" ", "single-space"),
-    ("    ", "multiple-spaces"),
-    ("\t", "tab"),
-    (" \t ", "mixed"),
-]
 
 
 # ---------------------
@@ -96,9 +88,9 @@ VALID_NAME_TYPES = [
     *(
         (
             (f"{SIMPLE_NAME}{sep}{SIMPLE_TYPE}", SIMPLE_NAME, SIMPLE_TYPE),
-            f"separator-{_id}",
+            f"separator_{case_id}",
         )
-        for sep, _id in WHITESPACE_SEPARATORS
+        for sep, case_id in WHITESPACE_SEPARATORS
     ),
 ]
 
@@ -173,9 +165,9 @@ NULLABILITY_VARIANTS = [
     *(
         (
             (f"NOT{sep}NULL", False),
-            f"separator-{_id}",
+            f"separator_{case_id}",
         )
-        for sep, _id in WHITESPACE_SEPARATORS
+        for sep, case_id in WHITESPACE_SEPARATORS
     ),
 ]
 

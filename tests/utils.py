@@ -5,6 +5,13 @@ from typing import Any
 
 import pytest
 
+WHITESPACE_SEPARATORS = [
+    (" ", "single-space"),
+    ("    ", "multiple-spaces"),
+    ("\t", "tab"),
+    (" \t ", "mixed"),
+]
+
 
 def case_params(cases: Iterable[tuple[Any, str]]) -> list[pytest.ParameterSet]:
     """Convert value/id case tuples into pytest parameter sets.
