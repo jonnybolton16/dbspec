@@ -8,6 +8,22 @@ import re
 from dbspec.errors import DBSpecParseError
 from dbspec.models import Column, Identity, Table, TableName
 
+# match valid schema/table/column identifiers (`docs/identifiers.md`)
+BRACKETED_IDENTIFIER = r"\[(?:[^\]]|\]\])+\]"
+VALID_IDENTIFIER = rf"(?:[A-Z_][A-Z0-9_]*|{BRACKETED_IDENTIFIER})"
+# (?:X|Y) -> either X or Y
+# X = [A-Z_][A-Z0-9_]*
+# [A-Z_] -> a letter (case-insensitive with re.IGNORECASE) or underscore
+# [A-Z0-9_]* -> zero or more word (alphanumeric/underscore) characters
+# X -> at least one word character, but not starting with a number
+# Y = \[(?:[^\]]|\]\])+\]
+# \[...\] -> matched square brackets
+# (?:x|y)+ -> one or more occurrences of x or y
+# x = [^\]] -> any character except a closing square bracket
+# y = \]\] -> an escaped closing square bracket
+# Y -> at least one character enclosed in square brackets, allowing
+#      escaped closing square brackets with ]]
+
 
 def _extract_fullmatch_groups(
     pattern: str, value: str, msg: str, *, flags: re.RegexFlag = re.NOFLAG
@@ -58,12 +74,12 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
         "identity": r"IDENTITY",
         "default": r"DEFAULT",
     }
-    # mask bracketed names and string literals (with '' escapes),
-    # so keywords inside them are ignored;
+    # mask bracketed identifiers and string literals (with
+    # '' escapes), so keywords inside them are ignored;
     # replace with underscores of the same length,
     # so match positions still index into `declaration`
     masked = re.sub(
-        r"\[[^\[\]]*\]|'(?:[^']|'')*'",
+        rf"{BRACKETED_IDENTIFIER}|'(?:[^']|'')*'",
         lambda m: "_" * len(m.group()),
         declaration,
     )
@@ -107,7 +123,7 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
     # do this before validating any clauses,
     # so that missing name/type errors take precedence
     column_name, data_type = _extract_fullmatch_groups(
-        r"(\[[^\[\]]+\]|[^\s\[\]]+)\s+(.+)",
+        rf"({VALID_IDENTIFIER})\s+(.+)",
         name_type,
         f"Missing/invalid <column_name> and/or <data_type>: {name_type!r}",
         flags=re.IGNORECASE,
@@ -181,7 +197,7 @@ def parse_table_declaration(declaration: str) -> Table:
     See `docs/tables.md` for the expected syntax.
     """
     schema, name = _extract_fullmatch_groups(
-        r"TABLE\s+([^.\s]+)\.([^.\s]+)",
+        rf"TABLE\s+({VALID_IDENTIFIER})\.({VALID_IDENTIFIER})",
         declaration.strip(),
         f"Invalid table declaration: {declaration!r}",
         flags=re.IGNORECASE,

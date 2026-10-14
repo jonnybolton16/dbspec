@@ -5,7 +5,12 @@ import pytest
 from dbspec.errors import DBSpecParseError
 from dbspec.models import Column, Identity
 from dbspec.parser import parse_column_declaration
-from tests.utils import WHITESPACE_SEPARATORS, case_params
+from tests.utils import (
+    INVALID_IDENTIFIERS,
+    VALID_IDENTIFIERS,
+    WHITESPACE_SEPARATORS,
+    case_params,
+)
 
 # use a simple valid prefix whenever the test is
 # about clauses rather than column name/type extraction
@@ -61,22 +66,17 @@ def test_invalid_empty_declaration(declaration: str) -> None:
 ### valid name/type ###
 VALID_NAME_TYPES = [
     ((SIMPLE_NAME_TYPE, SIMPLE_NAME, SIMPLE_TYPE), "simple"),
-    (
-        (f"user_name {SIMPLE_TYPE}", "user_name", SIMPLE_TYPE),
-        "name-with-underscore",
+    *(
+        (
+            (f"{name} {SIMPLE_TYPE}", name, SIMPLE_TYPE),
+            f"name-identifier_{case_id}",
+        )
+        for name, case_id in VALID_IDENTIFIERS
     ),
     (
-        (f"[name] {SIMPLE_TYPE}", "[name]", SIMPLE_TYPE),
-        "bracketed-name",
-    ),
-    (
-        (f"[my col] {SIMPLE_TYPE}", "[my col]", SIMPLE_TYPE),
-        "bracketed-name-with-whitespace",
-    ),
-    (
-        (f"my col] {SIMPLE_TYPE}", "my", f"col] {SIMPLE_TYPE}"),
+        (f"aB '5~@]]#) {SIMPLE_TYPE}", "aB", f"'5~@]]#) {SIMPLE_TYPE}"),
         "missing-opening-bracket",
-    ),  # included as type currently accepts "col] <SIMPLE_TYPE>"
+    ),  # included as type currently accepts "'5~@]]#) <SIMPLE_TYPE>"
     (
         (f"{SIMPLE_NAME} NVARCHAR(100)", SIMPLE_NAME, "NVARCHAR(100)"),
         "type-with-parameter",
@@ -138,9 +138,15 @@ def test_valid_keyword_like_name(name: str) -> None:
 INVALID_NAME_TYPES = [
     ("", "blank"),
     ("idINT", "single-token"),
-    (f"[my col {SIMPLE_TYPE}", "missing-closing-bracket"),
-    (f"[a[b]] {SIMPLE_TYPE}", "nested-bracket"),
-    (f"[] {SIMPLE_TYPE}", "empty-bracket"),
+    *(
+        (
+            f"{name} {SIMPLE_TYPE}",
+            f"name-identifier_{case_id}",
+        )
+        for name, case_id in INVALID_IDENTIFIERS
+        if name != "aB '5~@]]#)"
+        # excluded as type currently accepts "'5~@]]#) <SIMPLE_TYPE>"
+    ),
     (f"DEFAULT {SIMPLE_TYPE}", "keyword-name-upper"),
     (f"not null {SIMPLE_TYPE}", "keyword-name-lower"),
     (f"Identity {SIMPLE_TYPE}", "keyword-name-mixed"),
