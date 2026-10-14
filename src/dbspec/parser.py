@@ -74,12 +74,12 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
         "identity": r"IDENTITY",
         "default": r"DEFAULT",
     }
-    # mask bracketed names and string literals (with '' escapes),
-    # so keywords inside them are ignored;
+    # mask bracketed identifiers and string literals (with
+    # '' escapes), so keywords inside them are ignored;
     # replace with underscores of the same length,
     # so match positions still index into `declaration`
     masked = re.sub(
-        r"\[[^\[\]]*\]|'(?:[^']|'')*'",
+        rf"{BRACKETED_IDENTIFIER}|'(?:[^']|'')*'",
         lambda m: "_" * len(m.group()),
         declaration,
     )
@@ -123,7 +123,7 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
     # do this before validating any clauses,
     # so that missing name/type errors take precedence
     column_name, data_type = _extract_fullmatch_groups(
-        r"(\[[^\[\]]+\]|[^\s\[\]]+)\s+(.+)",
+        rf"({VALID_IDENTIFIER})\s+(.+)",
         name_type,
         f"Missing/invalid <column_name> and/or <data_type>: {name_type!r}",
         flags=re.IGNORECASE,

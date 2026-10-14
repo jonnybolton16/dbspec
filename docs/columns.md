@@ -17,7 +17,7 @@ created_at DATETIME2 NOT NULL DEFAULT SYSDATETIME()
 Notes:
 - The `IDENTITY`, `NOT`, `NULL` and `DEFAULT` keywords are
 **case-insensitive**.
-- If the `<column_name>` contains whitespace or matches one of the above keywords, it must be enclosed by square brackets. In such cases, the name itself cannot contain nested square brackets.
+- The `<column_name>` must be a [valid identifier](identifiers.md). Additionally, if the `<column_name>` matches one of the above keywords, it must be enclosed by square brackets.
 - For `IDENTITY` columns, neither or both the `<seed>` and `<increment>` must be provided. If they are provided, they must both be integers. If they are not provided, they both default to 1.
 - All non-`IDENTITY` column declarations must specify their nullability explicitly. `IDENTITY` columns are implicitly `NOT
 NULL`.
