@@ -4,18 +4,20 @@ import pytest
 
 from dbspec.errors import DBSpecParseError
 from dbspec.parser import parse_table_declaration
-from tests.utils import case_params
+from tests.utils import WHITESPACE_SEPARATORS, case_params
 
 SCHEMA = "dbo"
 TABLE = "organisations"
 
 VALID_DECLARATIONS = [
     (f"TABLE {SCHEMA}.{TABLE}", "expected-format"),
-    (f"    TABLE {SCHEMA}.{TABLE}    ", "outer-whitespace"),
-    (f"TABLE    {SCHEMA}.{TABLE}", "inner-whitespace"),
-    (f"TABLE\t{SCHEMA}.{TABLE}", "tab-whitespace"),
     (f"table {SCHEMA}.{TABLE}", "lowercase-keyword"),
     (f"Table {SCHEMA}.{TABLE}", "mixed-case-keyword"),
+    (f"    TABLE {SCHEMA}.{TABLE}    ", "outer-whitespace"),
+    *(
+        (f"TABLE{sep}{SCHEMA}.{TABLE}", f"separator_{case_id}")
+        for sep, case_id in WHITESPACE_SEPARATORS
+    ),
 ]
 
 
@@ -40,8 +42,10 @@ def test_valid_with_underscores() -> None:
 
 INVALID_DECLARATIONS = [
     ("", "empty-declaration"),
-    ("    ", "space-only"),
-    ("\t", "other-whitespace-only"),
+    *(
+        (sep, f"whitespace-only_{case_id}")
+        for sep, case_id in WHITESPACE_SEPARATORS
+    ),
     ("TABLE", "keyword-only"),
     (f"{TABLE}", "schema-or-name-only"),
     (f"{SCHEMA}.{TABLE}", "missing-keyword"),
