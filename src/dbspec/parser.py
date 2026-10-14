@@ -8,6 +8,22 @@ import re
 from dbspec.errors import DBSpecParseError
 from dbspec.models import Column, Identity, Table, TableName
 
+# match valid schema/table/column identifiers (`docs/identifiers.md`)
+BRACKETED_IDENTIFIER = r"\[(?:[^\]]|\]\])+\]"
+VALID_IDENTIFIER = rf"(?:[A-Z_][A-Z0-9_]*|{BRACKETED_IDENTIFIER})"
+# (?:X|Y) -> either X or Y
+# X = [A-Z_][A-Z0-9_]*
+# [A-Z_] -> a letter (case-insensitive with re.IGNORECASE) or underscore
+# [A-Z0-9_]* -> zero or more word (alphanumeric/underscore) characters
+# X -> at least one word character, but not starting with a number
+# Y = \[(?:[^\]]|\]\])+\]
+# \[...\] -> matched square brackets
+# (?:x|y)+ -> one or more occurrences of x or y
+# x = [^\]] -> any character except a closing square bracket
+# y = \]\] -> an escaped closing square bracket
+# Y -> at least one character enclosed in square brackets, allowing
+#      escaped closing square brackets with ]]
+
 
 def _extract_fullmatch_groups(
     pattern: str, value: str, msg: str, *, flags: re.RegexFlag = re.NOFLAG
