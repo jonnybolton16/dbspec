@@ -6,6 +6,7 @@ from dbspec.errors import DBSpecParseError
 from dbspec.models import Column, Identity
 from dbspec.parser import parse_column_declaration
 from tests.utils import (
+    EMPTY_DECLARATIONS,
     INVALID_IDENTIFIERS,
     VALID_IDENTIFIERS,
     WHITESPACE_SEPARATORS,
@@ -51,7 +52,7 @@ def reject(declaration: str, message: str) -> None:
 # ----------------------------------
 # Empty/whitespace-only declarations
 # ----------------------------------
-@parametrize_cases("declaration", ("", "blank"), *WHITESPACE_SEPARATORS)
+@parametrize_cases("declaration", *EMPTY_DECLARATIONS)
 def test_invalid_empty_declaration(declaration: str) -> None:
     """Reject an empty/whitespace-only column declaration."""
     reject(declaration, MSG_EMPTY)

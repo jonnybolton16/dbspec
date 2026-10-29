@@ -48,6 +48,10 @@ WHITESPACE_SEPARATORS = [
     ("\t", "tab"),
     (" \t ", "mixed"),
 ]
+EMPTY_DECLARATIONS = [
+    ("", "empty_blank"),
+    *((sep, f"empty_{case_id}") for sep, case_id in WHITESPACE_SEPARATORS),
+]
 
 
 # -----------

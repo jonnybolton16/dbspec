@@ -5,6 +5,7 @@ import pytest
 from dbspec.errors import DBSpecParseError
 from dbspec.parser import parse_table_declaration
 from tests.utils import (
+    EMPTY_DECLARATIONS,
     INVALID_IDENTIFIERS,
     VALID_IDENTIFIERS,
     WHITESPACE_SEPARATORS,
@@ -43,11 +44,7 @@ def test_valid_format(declaration: str) -> None:
 # ---------------------
 @parametrize_cases(
     "declaration",
-    ("", "empty-declaration"),
-    *(
-        (sep, f"whitespace-only_{case_id}")
-        for sep, case_id in WHITESPACE_SEPARATORS
-    ),
+    *EMPTY_DECLARATIONS,
     ("TABLE", "keyword-only"),
     (f"{TABLE}", "schema-or-name-only"),
     (f"{SCHEMA}.{TABLE}", "missing-keyword"),
