@@ -8,16 +8,18 @@ from tests.utils import (
     INVALID_IDENTIFIERS,
     VALID_IDENTIFIERS,
     WHITESPACE_SEPARATORS,
-    case_params,
+    parametrize_cases,
 )
 
 SCHEMA = "dbo"
 TABLE = "organisations"
 
+
 # ---------------------
 # Valid format variants
 # ---------------------
-VALID_DECLARATIONS = [
+@parametrize_cases(
+    "declaration",
     (f"TABLE {SCHEMA}.{TABLE}", "expected-format"),
     (f"table {SCHEMA}.{TABLE}", "lowercase-keyword"),
     (f"Table {SCHEMA}.{TABLE}", "mixed-case-keyword"),
@@ -26,10 +28,7 @@ VALID_DECLARATIONS = [
         (f"TABLE{sep}{SCHEMA}.{TABLE}", f"separator_{case_id}")
         for sep, case_id in WHITESPACE_SEPARATORS
     ),
-]
-
-
-@pytest.mark.parametrize("declaration", case_params(VALID_DECLARATIONS))
+)
 def test_valid_format(declaration: str) -> None:
     """Parse a valid table declaration."""
     table = parse_table_declaration(declaration)
@@ -42,7 +41,8 @@ def test_valid_format(declaration: str) -> None:
 # ---------------------
 # Invalid format variants
 # ---------------------
-INVALID_DECLARATIONS = [
+@parametrize_cases(
+    "declaration",
     ("", "empty-declaration"),
     *(
         (sep, f"whitespace-only_{case_id}")
@@ -60,10 +60,7 @@ INVALID_DECLARATIONS = [
     (f"TABLE {SCHEMA} .{TABLE}", "space-before-separator"),
     (f"TABLE {SCHEMA}. {TABLE}", "space-after-separator"),
     (f"TABLE {SCHEMA}.{TABLE}.extra", "additional-name-part"),
-]
-
-
-@pytest.mark.parametrize("declaration", case_params(INVALID_DECLARATIONS))
+)
 def test_invalid_format(declaration: str) -> None:
     """Reject an invalid table declaration."""
     with pytest.raises(DBSpecParseError):
@@ -73,7 +70,7 @@ def test_invalid_format(declaration: str) -> None:
 # -------------------------
 # Valid identifier variants
 # -------------------------
-@pytest.mark.parametrize("identifier", case_params(VALID_IDENTIFIERS))
+@parametrize_cases("identifier", *VALID_IDENTIFIERS)
 def test_valid_identifier(identifier: str) -> None:
     """Parse a table declaration using a valid identifier."""
     table = parse_table_declaration(f"TABLE {identifier}.{TABLE}")
@@ -92,7 +89,7 @@ def test_valid_identifier(identifier: str) -> None:
 # ---------------------------
 # Invalid identifier variants
 # ---------------------------
-@pytest.mark.parametrize("identifier", case_params(INVALID_IDENTIFIERS))
+@parametrize_cases("identifier", *INVALID_IDENTIFIERS)
 def test_invalid_identifier(identifier: str) -> None:
     """Reject a table declaration using an invalid identifier."""
     with pytest.raises(DBSpecParseError):

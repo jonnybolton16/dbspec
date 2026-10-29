@@ -9,7 +9,7 @@ from tests.utils import (
     INVALID_IDENTIFIERS,
     VALID_IDENTIFIERS,
     WHITESPACE_SEPARATORS,
-    case_params,
+    parametrize_cases,
 )
 
 # use a simple valid prefix whenever the test is
@@ -51,10 +51,7 @@ def reject(declaration: str, message: str) -> None:
 # ----------------------------------
 # Empty/whitespace-only declarations
 # ----------------------------------
-EMPTY_DECLARATIONS = [("", "blank"), *WHITESPACE_SEPARATORS]
-
-
-@pytest.mark.parametrize("declaration", case_params(EMPTY_DECLARATIONS))
+@parametrize_cases("declaration", ("", "blank"), *WHITESPACE_SEPARATORS)
 def test_invalid_empty_declaration(declaration: str) -> None:
     """Reject an empty/whitespace-only column declaration."""
     reject(declaration, MSG_EMPTY)
@@ -64,7 +61,8 @@ def test_invalid_empty_declaration(declaration: str) -> None:
 # Column name and data type
 # -------------------------
 ### valid name/type ###
-VALID_NAME_TYPES = [
+@parametrize_cases(
+    ("name_type", "expected_name", "expected_datatype"),
     ((SIMPLE_NAME_TYPE, SIMPLE_NAME, SIMPLE_TYPE), "simple"),
     *(
         (
@@ -92,12 +90,6 @@ VALID_NAME_TYPES = [
         )
         for sep, case_id in WHITESPACE_SEPARATORS
     ),
-]
-
-
-@pytest.mark.parametrize(
-    ("name_type", "expected_name", "expected_datatype"),
-    case_params(VALID_NAME_TYPES),
 )
 def test_valid_name_type(
     name_type: str, expected_name: str, expected_datatype: str
@@ -110,7 +102,8 @@ def test_valid_name_type(
 
 
 ### column name contains keyword ###
-VALID_KEYWORD_LIKE_NAMES = [
+@parametrize_cases(
+    "name",
     # keywords as a substring
     ("nullable", "null-substring"),
     ("not_null", "not-null-substring"),
@@ -121,10 +114,7 @@ VALID_KEYWORD_LIKE_NAMES = [
     ("[default name]", "bracketed-first"),
     ("[user identity]", "bracketed-last"),
     ("[a not null column]", "bracketed-mid"),
-]
-
-
-@pytest.mark.parametrize("name", case_params(VALID_KEYWORD_LIKE_NAMES))
+)
 def test_valid_keyword_like_name(name: str) -> None:
     """Parse keyword-like column names."""
     column = parse_column_declaration(
@@ -135,7 +125,8 @@ def test_valid_keyword_like_name(name: str) -> None:
 
 
 ### invalid name/type ###
-INVALID_NAME_TYPES = [
+@parametrize_cases(
+    "name_type",
     ("", "blank"),
     ("idINT", "single-token"),
     *(
@@ -150,10 +141,7 @@ INVALID_NAME_TYPES = [
     (f"DEFAULT {SIMPLE_TYPE}", "keyword-name-upper"),
     (f"not null {SIMPLE_TYPE}", "keyword-name-lower"),
     (f"Identity {SIMPLE_TYPE}", "keyword-name-mixed"),
-]
-
-
-@pytest.mark.parametrize("name_type", case_params(INVALID_NAME_TYPES))
+)
 def test_invalid_name_type(name_type: str) -> None:
     """Reject a missing/invalid column name and/or data type."""
     reject(f"{name_type} {SIMPLE_NULL_CLAUSE}", MSG_NAME_TYPE)
@@ -163,7 +151,8 @@ def test_invalid_name_type(name_type: str) -> None:
 # Nullability
 # -----------
 ### valid nullability ###
-NULLABILITY_VARIANTS = [
+@parametrize_cases(
+    ("clause", "expected"),
     (("NULL", True), "null"),
     (("NOT NULL", False), "not-null"),
     (("null", True), "lower"),
@@ -175,11 +164,6 @@ NULLABILITY_VARIANTS = [
         )
         for sep, case_id in WHITESPACE_SEPARATORS
     ),
-]
-
-
-@pytest.mark.parametrize(
-    ("clause", "expected"), case_params(NULLABILITY_VARIANTS)
 )
 def test_valid_nullability(clause: str, *, expected: bool) -> None:
     """Parse the nullability clause."""
@@ -191,15 +175,13 @@ def test_valid_nullability(clause: str, *, expected: bool) -> None:
 
 
 ### invalid nullability ###
-EXPRESSION_AFTER_NULLABILITY = [
+@parametrize_cases(
+    "clause",
     ("NULL foo", "expression-after-null"),
     ("NOT NULL foo", "expression-after-not-null"),
     ("NULL foo DEFAULT bar", "expression-between-null-and-default"),
     ("NOT NULL (foo + bar) DEFAULT baz", "parenthesised-expression"),
-]
-
-
-@pytest.mark.parametrize("clause", case_params(EXPRESSION_AFTER_NULLABILITY))
+)
 def test_invalid_nullability(clause: str) -> None:
     """Reject an invalid nullability clause."""
     reject(f"{SIMPLE_NAME_TYPE} {clause}", MSG_NULL_EXPRESSION)
@@ -212,7 +194,8 @@ def test_invalid_nullability(clause: str) -> None:
 # representative free-form expressions
 # keywords can be included inside '...' literals
 # expression validation is left to SQL
-DEFAULT_EXPRESSIONS = [
+@parametrize_cases(
+    "expression",
     ("foo", "single-token"),
     ("foo bar", "whitespace"),
     ("foo.bar.baz", "dot-notation"),
@@ -230,10 +213,7 @@ DEFAULT_EXPRESSIONS = [
     ("'A DEFAULT IDENTITY EXPRESSION'", "quoted-keyword-mid"),
     ("NULL", "null-expression"),
     ("CASE WHEN foo THEN bar ELSE NULL END", "null-in-expression"),
-]
-
-
-@pytest.mark.parametrize("expression", case_params(DEFAULT_EXPRESSIONS))
+)
 def test_valid_default_expression(expression: str) -> None:
     """Parse the default clause."""
     column = parse_column_declaration(
@@ -246,14 +226,12 @@ def test_valid_default_expression(expression: str) -> None:
 
 
 ### case-insensitivity ###
-VALID_DEFAULT_VARIANTS = [
+@parametrize_cases(
+    "keyword",
     ("DEFAULT", "upper"),
     ("default", "lower"),
     ("Default", "mixed"),
-]
-
-
-@pytest.mark.parametrize("keyword", case_params(VALID_DEFAULT_VARIANTS))
+)
 def test_valid_default_case(keyword: str) -> None:
     """Parse a case-insensitive default keyword."""
     column = parse_column_declaration(
@@ -266,7 +244,7 @@ def test_valid_default_case(keyword: str) -> None:
 
 
 ### flexible whitespace ###
-@pytest.mark.parametrize("separator", case_params(WHITESPACE_SEPARATORS))
+@parametrize_cases("separator", *WHITESPACE_SEPARATORS)
 def test_valid_default_separator(separator: str) -> None:
     """Parse a default clause with a flexible whitespace separator."""
     column = parse_column_declaration(
@@ -290,7 +268,8 @@ def test_invalid_default() -> None:
 # Identity
 # --------
 ### valid identity specifications ###
-VALID_IDENTITY_SPECS = [
+@parametrize_cases(
+    ("spec", "expected"),
     (("", (1, 1)), "no-spec-default"),
     (("(1,1)", (1, 1)), "no-spaces"),
     ((" (1,1)", (1, 1)), "space-before-parenthesis"),
@@ -300,11 +279,6 @@ VALID_IDENTITY_SPECS = [
     (("(3, -2)", (3, -2)), "negative-increment"),
     (("(+5, 10)", (5, 10)), "explicit-positive-seed"),
     (("(5, +10)", (5, 10)), "explicit-positive-increment"),
-]
-
-
-@pytest.mark.parametrize(
-    ("spec", "expected"), case_params(VALID_IDENTITY_SPECS)
 )
 def test_valid_identity_spec(spec: str, expected: tuple) -> None:
     """Parse the identity clause."""
@@ -316,14 +290,12 @@ def test_valid_identity_spec(spec: str, expected: tuple) -> None:
 
 
 ### case-insensitivity ###
-VALID_IDENTITY_VARIANTS = [
+@parametrize_cases(
+    "keyword",
     ("IDENTITY", "upper"),
     ("identity", "lower"),
     ("Identity", "mixed"),
-]
-
-
-@pytest.mark.parametrize("keyword", case_params(VALID_IDENTITY_VARIANTS))
+)
 def test_valid_identity_case(keyword: str) -> None:
     """Parse a case-insensitive identity keyword."""
     column = parse_column_declaration(f"{SIMPLE_NAME_TYPE} {keyword}")
@@ -334,7 +306,8 @@ def test_valid_identity_case(keyword: str) -> None:
 
 
 ### invalid identity specifications ###
-INVALID_IDENTITY_SPECS = [
+@parametrize_cases(
+    "spec",
     ("()", "no-arguments"),
     ("(1)", "one-argument"),
     ("(1,2,3)", "three-arguments"),
@@ -352,10 +325,7 @@ INVALID_IDENTITY_SPECS = [
     ("(1 1)", "missing-comma"),
     ("(1,1) foo", "trailing-token"),
     (" foo", "single-token"),
-]
-
-
-@pytest.mark.parametrize("spec", case_params(INVALID_IDENTITY_SPECS))
+)
 def test_invalid_identity(spec: str) -> None:
     """Reject an invalid identity specification."""
     reject(f"{SIMPLE_NAME_TYPE} IDENTITY{spec}", MSG_IDENTITY_SPEC)
@@ -364,13 +334,11 @@ def test_invalid_identity(spec: str) -> None:
 # --------------------------------------------
 # Missing required nullability/identity clause
 # --------------------------------------------
-MISSING_REQUIRED = [
+@parametrize_cases(
+    "declaration",
     ("", "no-options"),
     ("DEFAULT foo", "default-only"),
-]
-
-
-@pytest.mark.parametrize("declaration", case_params(MISSING_REQUIRED))
+)
 def test_invalid_missing_required(declaration: str) -> None:
     """Reject a declaration missing NULL, NOT NULL, or IDENTITY."""
     reject(f"{SIMPLE_NAME_TYPE} {declaration}", MSG_MISSING_REQUIRED)
@@ -380,7 +348,10 @@ def test_invalid_missing_required(declaration: str) -> None:
 # Mutually exclusive clauses
 # --------------------------
 NULL_COMPANIONS = ["NULL", "NOT NULL"]
-MUTUAL_EXCLUSIONS = [
+
+
+@parametrize_cases(
+    "declaration",
     # identity with either nullability, in either order
     *(
         (
@@ -412,10 +383,7 @@ MUTUAL_EXCLUSIONS = [
             [nullability, "DEFAULT foo", "IDENTITY"],
         ]
     ),
-]
-
-
-@pytest.mark.parametrize("declaration", case_params(MUTUAL_EXCLUSIONS))
+)
 def test_invalid_mutual_exclusions(declaration: str) -> None:
     """Reject mutually exclusive clauses."""
     reject(f"{SIMPLE_NAME_TYPE} {declaration}", MSG_MUTUAL_EXCLUSION)
@@ -424,15 +392,11 @@ def test_invalid_mutual_exclusions(declaration: str) -> None:
 # ---------------------
 # Default/null ordering
 # ---------------------
-DEFAULT_BEFORE_NULLABILITY = [
+@parametrize_cases(
+    "declaration",
     ("DEFAULT foo NULL", "default-null"),
     ("DEFAULT foo NOT NULL", "default-not-null"),
     ("DEFAULT CASE WHEN foo THEN bar ELSE NULL END", "null-in-expression"),
-]
-
-
-@pytest.mark.parametrize(
-    "declaration", case_params(DEFAULT_BEFORE_NULLABILITY)
 )
 def test_invalid_default_null_ordering(declaration: str) -> None:
     """Reject a declaration where default appears before nullability."""
@@ -464,7 +428,8 @@ def test_invalid_repeated_identity_as_specification() -> None:
 # ----------------------
 # Multi-error precedence
 # ----------------------
-MULTI_ERROR_PRECEDENCE = [
+@parametrize_cases(
+    ("declaration", "expected_message"),
     # empty input before any parsing
     (("", MSG_EMPTY), "empty-first"),
     # invalid name/type before any clause validation
@@ -525,11 +490,6 @@ MULTI_ERROR_PRECEDENCE = [
         (f"{SIMPLE_NAME_TYPE} NOT NULL foo DEFAULT", MSG_NULL_EXPRESSION),
         "null-expression-before-missing-default",
     ),
-]
-
-
-@pytest.mark.parametrize(
-    ("declaration", "expected_message"), case_params(MULTI_ERROR_PRECEDENCE)
 )
 def test_invalid_multiple_errors(
     declaration: str, expected_message: str
@@ -553,7 +513,8 @@ def test_invalid_multiple_errors(
 # -----------------------
 # Full valid declarations
 # -----------------------
-VALID_DECLARATIONS = [
+@parametrize_cases(
+    ("declaration", "expected"),
     (
         (
             "description NVARCHAR(200) NULL",
@@ -601,11 +562,6 @@ VALID_DECLARATIONS = [
         ),
         "bracketed-name-and-string-default",
     ),
-]
-
-
-@pytest.mark.parametrize(
-    ("declaration", "expected"), case_params(VALID_DECLARATIONS)
 )
 def test_valid_declaration(declaration: str, expected: Column) -> None:
     """Parse a full valid column declaration."""
