@@ -66,14 +66,6 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
         msg = "Column declaration cannot be empty"
         raise DBSpecParseError(msg)
 
-    # find first occurrence of each keyword, to separate
-    # <column_name> <data_type> portion, and identify
-    # <expression> associated with each keyword
-    keyword_regexes = {
-        "nullability": r"(?:NOT\s+)?NULL",
-        "identity": r"IDENTITY",
-        "default": r"DEFAULT",
-    }
     # mask bracketed identifiers and string literals (with
     # '' escapes), so keywords inside them are ignored;
     # replace with underscores of the same length,
@@ -83,6 +75,15 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
         lambda m: "_" * len(m.group()),
         declaration,
     )
+
+    # find first occurrence of each keyword, to separate
+    # <column_name> <data_type> portion, and identify
+    # <expression> associated with each keyword
+    keyword_regexes = {
+        "nullability": r"(?:NOT\s+)?NULL",
+        "identity": r"IDENTITY",
+        "default": r"DEFAULT",
+    }
     keyword_matches = {
         keyword: re.search(
             rf"(?<!\S){regex}\b",
