@@ -85,11 +85,7 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
         "default": r"DEFAULT",
     }
     keyword_matches = {
-        keyword: re.search(
-            rf"(?<!\S){regex}\b",
-            masked,
-            flags=re.IGNORECASE,
-        )
+        keyword: re.search(rf"(?<!\S){regex}\b", masked, flags=re.IGNORECASE)
         for keyword, regex in keyword_regexes.items()
     }
     has = {keyword: bool(match) for keyword, match in keyword_matches.items()}
