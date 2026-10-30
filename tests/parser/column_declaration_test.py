@@ -117,7 +117,7 @@ def test_valid_name_type(
     ("[a not null column]", "bracketed-mid"),
 )
 def test_valid_keyword_like_name(name: str) -> None:
-    """Parse keyword-like column names."""
+    """Parse a keyword-like column name."""
     column = parse_column_declaration(
         f"{name} {SIMPLE_TYPE} {SIMPLE_NULL_CLAUSE}"
     )
