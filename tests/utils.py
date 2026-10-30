@@ -1,17 +1,62 @@
 """DBSpec test utilities."""
 
-from collections.abc import Iterable
 from typing import Any
 
 import pytest
 
+
+# -------
+# Helpers
+# -------
+def parametrize_cases(
+    argnames: str | tuple[str, ...], *cases: tuple[Any, str]
+) -> pytest.MarkDecorator:
+    """Parametrize a test using value/id case tuples.
+
+    Both single- and multi-valued `cases` are supported, in the form:
+    - single: `(value, id)`, where `value` is a single object (which may
+      itself be a tuple)
+    - multi: `(values, id)`, where `values` is a tuple of objects
+
+    Single-valued cases are indicated by a single-string `argnames`. In
+    this case, if `value` is a tuple, it is not unpacked, and is instead
+    treated as the single value for the single argument.
+
+    Multi-valued cases are indicated by a tuple-of-strings `argnames`.
+    In this case, the `values` tuple is unpacked, with each value
+    corresponding to the same-index argument.
+
+    In either case, `id` is an id string for the test case.
+    """
+    multi = isinstance(argnames, tuple)
+
+    return pytest.mark.parametrize(
+        argnames,
+        [
+            pytest.param(*(values if multi else (values,)), id=case_id)
+            for values, case_id in cases
+        ],
+    )
+
+
+# ----------
+# Whitespace
+# ----------
 WHITESPACE_SEPARATORS = [
     (" ", "single-space"),
     ("    ", "multiple-spaces"),
     ("\t", "tab"),
     (" \t ", "mixed"),
 ]
+EMPTY_DECLARATIONS = [
+    ("", "empty_blank"),
+    *((sep, f"empty_{case_id}") for sep, case_id in WHITESPACE_SEPARATORS),
+]
 
+
+# -----------
+# Identifiers
+# -----------
 VALID_IDENTIFIERS = [
     ("dbo", "lowercase-letters"),
     ("MY_TABLE", "uppercase-letters-and-underscores"),
@@ -22,7 +67,6 @@ VALID_IDENTIFIERS = [
     ("[café]", "non-ascii-with-brackets"),
     ("[aB '5~@]]#)]", "other-characters-with-brackets"),
 ]
-
 INVALID_IDENTIFIERS = [
     ("[]", "empty-with-brackets"),
     ("123abc", "leading-digit-without-brackets"),
@@ -33,18 +77,3 @@ INVALID_IDENTIFIERS = [
     ("[123abc", "missing-closing-bracket"),
     ("[[123abc]]", "trailing-escaped-closing-bracket"),
 ]
-
-
-def case_params(cases: Iterable[tuple[Any, str]]) -> list[pytest.ParameterSet]:
-    """Convert value/id case tuples into pytest parameter sets.
-
-    Both single- and multi-valued cases are supported, in the form:
-    - single: `(value, id)`, `value` is a single object
-    - multi: `((values...), id)`, `values` is a tuple of objects
-    """
-    return [
-        pytest.param(
-            *(values if isinstance(values, tuple) else (values,)), id=case_id
-        )
-        for values, case_id in cases
-    ]
