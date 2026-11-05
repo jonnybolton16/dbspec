@@ -424,7 +424,7 @@ def parse_table_declaration(declaration: str) -> Table:
     See `docs/tables.md` for the expected syntax.
     """
     schema, name = _extract_fullmatch_groups(
-        rf"TABLE\s+({VALID_IDENTIFIER})\.({VALID_IDENTIFIER})",
+        rf"TABLE\s+{VALID_SCHEMA_TABLE}",
         declaration.strip(),
         f"Invalid table declaration: {declaration!r}",
         flags=re.IGNORECASE,
