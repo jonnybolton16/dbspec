@@ -77,3 +77,11 @@ INVALID_IDENTIFIERS = [
     ("[123abc", "missing-closing-bracket"),
     ("[[123abc]]", "trailing-escaped-closing-bracket"),
 ]
+
+
+# -----------------------------
+# <schema>.<table_name> formats
+# -----------------------------
+SCHEMA = "dbo"
+TABLE_NAME = "organisations"
+VALID_SCHEMA_TABLE_FORMAT = f"{SCHEMA}.{TABLE_NAME}"
