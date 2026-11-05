@@ -185,6 +185,11 @@ def test_valid_pk_multi(left: str, right: str, space: str) -> None:
     ("[primary key]", "pk"),
     ("[unique]", "uq"),
     ("[foreign key]", "fk"),
+    # non-key-declaration keywords as column names
+    ("table", "table"),
+    ("null", "null"),
+    ("identity", "identity"),
+    ("default", "default"),
 )
 def test_valid_pk_key_type_like_name(column: str) -> None:
     """Parse a key-type-like column name."""

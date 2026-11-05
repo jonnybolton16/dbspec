@@ -115,6 +115,16 @@ def test_valid_name_type(
     ("[default name]", "bracketed-first"),
     ("[user identity]", "bracketed-last"),
     ("[a not null column]", "bracketed-mid"),
+    # non-column-declaration keywords as column names
+    ("table", "table"),
+    ("primary", "primary"),
+    ("unique", "unique"),
+    ("foreign", "foreign"),
+    ("key", "key"),
+    ("references", "references"),
+    ("on", "on"),
+    ("delete", "delete"),
+    ("update", "update"),
 )
 def test_valid_keyword_like_name(name: str) -> None:
     """Parse a keyword-like column name."""
