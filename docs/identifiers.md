@@ -16,6 +16,7 @@ The following identifiers are valid:
 - `dbo`
 - `MY_TABLE`
 - `Column0123456789`
+- `Ab1_`
 - `_orgs`
 - `[dbo]`
 - `[123abc]`
@@ -28,6 +29,7 @@ The following identifiers are invalid:
 - `café` &rarr; *non-ASCII character without enclosed square brackets*
 - `aB '5~@]]#)` &rarr; *non-alphanumeric/underscore characters without enclosed square brackets*
 - `[aB '5~@]#)]` &rarr; *unescaped single closing square bracket inside the identifier*
+- `(123abc)` &rarr; *round brackets instead of square brackets*
 - `123abc]` &rarr; *missing opening square bracket*
 - `[123abc` &rarr; *missing closing square bracket*
 - `[[123abc]]` &rarr; *the final `]]` is interpreted as an escaped `]`, leaving the identifier without a closing bracket*

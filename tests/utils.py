@@ -61,6 +61,7 @@ VALID_IDENTIFIERS = [
     ("dbo", "lowercase-letters"),
     ("MY_TABLE", "uppercase-letters-and-underscores"),
     ("Column0123456789", "mixed-case-letters-and-digits"),
+    ("Ab1_", "all-character-types"),
     ("_orgs", "leading-underscore"),
     ("[dbo]", "unnecessary-brackets"),
     ("[123abc]", "leading-digit-with-brackets"),
@@ -73,7 +74,26 @@ INVALID_IDENTIFIERS = [
     ("café", "non-ascii-without-brackets"),
     ("aB '5~@]]#)", "other-characters-without-brackets"),
     ("[aB '5~@]#)]", "unescaped-closing-bracket"),
+    ("(123abc)", "round-not-square-brackets"),
     ("123abc]", "missing-opening-bracket"),
     ("[123abc", "missing-closing-bracket"),
     ("[[123abc]]", "trailing-escaped-closing-bracket"),
+]
+
+
+# -----------------------------
+# <schema>.<table_name> formats
+# -----------------------------
+SCHEMA = "dbo"
+TABLE_NAME = "organisations"
+VALID_SCHEMA_TABLE_FORMAT = f"{SCHEMA}.{TABLE_NAME}"
+INVALID_SCHEMA_TABLE_FORMATS = [
+    (f"{TABLE_NAME}", "single-identifier"),
+    (f".{TABLE_NAME}", "missing-schema"),
+    (f"{SCHEMA}.", "missing-table-name"),
+    (f"{SCHEMA} {TABLE_NAME}", "incorrect-separator-space"),
+    (f"{SCHEMA}-{TABLE_NAME}", "incorrect-separator-punctuation"),
+    (f"{SCHEMA} .{TABLE_NAME}", "space-before-separator"),
+    (f"{SCHEMA}. {TABLE_NAME}", "space-after-separator"),
+    (f"{VALID_SCHEMA_TABLE_FORMAT}.extra", "additional-identifier"),
 ]
