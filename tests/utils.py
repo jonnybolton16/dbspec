@@ -85,3 +85,13 @@ INVALID_IDENTIFIERS = [
 SCHEMA = "dbo"
 TABLE_NAME = "organisations"
 VALID_SCHEMA_TABLE_FORMAT = f"{SCHEMA}.{TABLE_NAME}"
+INVALID_SCHEMA_TABLE_FORMATS = [
+    (f"{TABLE_NAME}", "single-identifier"),
+    (f".{TABLE_NAME}", "missing-schema"),
+    (f"{SCHEMA}.", "missing-table-name"),
+    (f"{SCHEMA} {TABLE_NAME}", "incorrect-separator-space"),
+    (f"{SCHEMA}-{TABLE_NAME}", "incorrect-separator-punctuation"),
+    (f"{SCHEMA} .{TABLE_NAME}", "space-before-separator"),
+    (f"{SCHEMA}. {TABLE_NAME}", "space-after-separator"),
+    (f"{VALID_SCHEMA_TABLE_FORMAT}.extra", "additional-identifier"),
+]

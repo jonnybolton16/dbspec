@@ -7,6 +7,7 @@ from dbspec.parser import parse_table_declaration
 from tests.utils import (
     EMPTY_DECLARATIONS,
     INVALID_IDENTIFIERS,
+    INVALID_SCHEMA_TABLE_FORMATS,
     SCHEMA,
     TABLE_NAME,
     VALID_IDENTIFIERS,
@@ -49,14 +50,10 @@ def test_valid_format(declaration: str) -> None:
     (f"{TABLE_NAME}", "schema-or-name-only"),
     (f"{VALID_SCHEMA_TABLE_FORMAT}", "missing-keyword"),
     (f"TABL {VALID_SCHEMA_TABLE_FORMAT}", "incorrect-keyword"),
-    (f"TABLE {TABLE}", "missing-schema-or-name"),
-    (f"TABLE .{TABLE}", "empty-schema"),
-    (f"TABLE {SCHEMA}.", "empty-table-name"),
-    (f"TABLE {SCHEMA} {TABLE}", "incorrect-separator-space"),
-    (f"TABLE {SCHEMA}-{TABLE}", "incorrect-separator-punctuation"),
-    (f"TABLE {SCHEMA} .{TABLE}", "space-before-separator"),
-    (f"TABLE {SCHEMA}. {TABLE}", "space-after-separator"),
-    (f"TABLE {SCHEMA}.{TABLE}.extra", "additional-name-part"),
+    *(
+        (f"TABLE {fmt}", case_id)
+        for fmt, case_id in INVALID_SCHEMA_TABLE_FORMATS
+    ),
 )
 def test_invalid_format(declaration: str) -> None:
     """Reject an invalid table declaration."""
