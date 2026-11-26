@@ -3,7 +3,9 @@
 Utilities for parsing DBSpec files into database schema model objects.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass
+from itertools import chain
 import re
 
 from dbspec.errors import (
@@ -162,17 +164,19 @@ def parse_table_file(lines: list[DBSpecLine]) -> Table:
     """
     # initialise model and error collections
     table: Table | None = None
-    columns: list[Column] = []
-    keys: list[Key] = []
+    columns: defaultdict[str, list[Column]] = defaultdict(list)
+    keys: defaultdict[type[Key], list[Key]] = defaultdict(list)
     parse_errors: list[DBSpecParseError] = []
     model_errors: list[DBSpecModelError] = []
 
     # helpers for parsing and collecting declarations
     def collect_column(line: DBSpecLine) -> None:
-        columns.append(parse_column_declaration(line.text))
+        column = parse_column_declaration(line.text)
+        columns[column.name].append(column)
 
     def collect_key(line: DBSpecLine) -> None:
-        keys.append(parse_key_declaration(line.text))
+        key = parse_key_declaration(line.text)
+        keys[type(key)].append(key)
 
     # category pattern-to-collector mapping
     # and unknown-category line tracker
@@ -244,24 +248,63 @@ def parse_table_file(lines: list[DBSpecLine]) -> Table:
             _unrecognized_category_error(unknown_category_line)
         )
 
-    # TODO: file-level validation:
+    # raise line-level errors before carrying out file-level validation
+    if parse_errors or model_errors:
+        raise DBSpecFileError(parse_errors + model_errors)
+
+    # file-level validation:
     #  at least one column
     #  no duplicate columns
     #  at most one identity column
     #  at most one primary key
+    if not columns:
+        model_errors.append(
+            DBSpecModelError("Table files must contain at least one column")
+        )
+    for column, items in columns.items():
+        if len(items) > 1:
+            model_errors.append(
+                DBSpecModelError(f"Duplicate column: {column!r}")
+            )
+    if (
+        len(
+            [
+                item
+                for item in chain.from_iterable(columns.values())
+                if item.identity
+            ]
+        )
+        > 1
+    ):
+        model_errors.append(
+            DBSpecModelError("Multiple identity columns declared")
+        )
+    if len(keys[PrimaryKey]) > 1:
+        model_errors.append(DBSpecModelError("Multiple primary keys declared"))
 
-    # raise errors before building the table
-    if parse_errors or model_errors:
-        raise DBSpecFileError(parse_errors + model_errors)
+    # raise file-level validation errors before building the table
+    if model_errors:
+        raise DBSpecFileError(model_errors)
 
-    # build table
+    # build table: add columns first, so keys can validate against them
     if table is None:
         msg = "Table file did not produce a table model"
         raise RuntimeError(msg)
-    for column in columns:
-        table.add_column(column)
-    for key in keys:
-        table.add_key(key)
+    for column in chain.from_iterable(columns.values()):
+        try:
+            table.add_column(column)
+        except DBSpecModelError as e:
+            model_errors.append(e)
+    for key in chain.from_iterable(keys.values()):
+        try:
+            table.add_key(key)
+        except DBSpecModelError as e:
+            model_errors.append(e)
+
+    # raise errors collected during model build
+    if model_errors:
+        raise DBSpecFileError(model_errors)
+
     return table
 
 
