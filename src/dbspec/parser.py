@@ -207,7 +207,7 @@ def parse_table_file(lines: list[DBSpecLine]) -> Table:
     return table
 
 
-def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
+def parse_column_declaration(declaration: str) -> Column:
     """Parse a column declaration into a `Column` object.
 
     See `docs/columns.md` for the expected syntax.
@@ -340,7 +340,7 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
     )
 
 
-def parse_key_declaration(declaration: str) -> Key:  # noqa: C901
+def parse_key_declaration(declaration: str) -> Key:
     """Parse a key declaration into a `Key` object.
 
     See `docs/keys.md` for the expected syntax.
