@@ -113,6 +113,48 @@ def _parse_csv_identifier_list(value: str, name: str) -> tuple[str, ...]:
     )
 
 
+def _unrecognized_category_error(
+    category_line: DBSpecLine, next_category_line: DBSpecLine | None = None
+) -> DBSpecParseError:
+    """Return a parse error for an unrecognized category.
+
+    The interval
+      `[category_line.line_no + 1, next_category_line.line_no - 1]`
+    represents the skipped lines making up the unrecognized category. A
+    `next_category_line` of `None` indicates that the unrecognized
+    category extends to the end of the file.
+
+    Args:
+      category_line: The line containing the unrecognized category.
+      next_category_line: The line containing the next category, if any.
+
+    Returns:
+      A `DBSpecParseError` detailing the unrecognized category, and the
+        skipped lines, if any.
+    """
+    start = category_line.line_no + 1
+    end = (
+        float("inf")
+        if next_category_line is None
+        else next_category_line.line_no - 1
+    )
+    skip_range = (
+        ""
+        if end < start
+        else "; skipped "
+        + (
+            f"line {start}"
+            if start == end
+            else f"lines {start} to end"
+            if end == float("inf")
+            else f"lines {start} to {end}"
+        )
+    )
+    return DBSpecParseError(
+        f"Unrecognized category: {category_line.text!r}{skip_range}"
+    )
+
+
 def parse_table_file(lines: list[DBSpecLine]) -> Table:
     """Parse the contents of a DBSpec file defining a table.
 
@@ -133,7 +175,9 @@ def parse_table_file(lines: list[DBSpecLine]) -> Table:
         keys.append(parse_key_declaration(line.text))
 
     # category pattern-to-collector mapping
+    # and unknown-category line tracker
     category_functions = [(r"COLUMNS", collect_column), (r"KEYS", collect_key)]
+    unknown_category_line: DBSpecLine | None = None
 
     # separate the first line containing the table declaration
     first_line, *lines = lines
@@ -153,6 +197,14 @@ def parse_table_file(lines: list[DBSpecLine]) -> Table:
     for line in lines:
         # handle a category switch
         if line.text.startswith("@@"):
+            # collect the error from a previous unrecognized category,
+            # if applicable, now that we know when that category ends
+            if unknown_category_line is not None:
+                parse_errors.append(
+                    _unrecognized_category_error(unknown_category_line, line)
+                )
+                unknown_category_line = None
+
             # parse the category and reset the collector function
             for pattern, function in category_functions:
                 if re.fullmatch(
@@ -164,18 +216,17 @@ def parse_table_file(lines: list[DBSpecLine]) -> Table:
 
             # handle an unknown category (if the loop was not broken);
             # unset the collector so the following lines are skipped
+            # store the unknown category line for later error reporting
             else:
                 collector = None
-                parse_errors.append(
-                    DBSpecParseError(f"Unrecognized category: {line.text!r}")
-                )
+                unknown_category_line = line
 
             # don't attempt to parse the category line as a declaration
             continue
 
         # if we are currently in an unknown category,
         # skip lines until the next category is reached
-        if collector is None:
+        if unknown_category_line is not None:
             continue
 
         # attempt to parse the line using the current category collector
@@ -185,6 +236,13 @@ def parse_table_file(lines: list[DBSpecLine]) -> Table:
             parse_errors.append(e)
         except DBSpecModelError as e:
             model_errors.append(e)
+
+    # after parsing all lines, we may still be in
+    # an unknown category, so collect its error
+    if unknown_category_line is not None:
+        parse_errors.append(
+            _unrecognized_category_error(unknown_category_line)
+        )
 
     # TODO: file-level validation:
     #  at least one column
