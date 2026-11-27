@@ -3,9 +3,10 @@
 Utilities for parsing DBSpec files into database schema model objects.
 """
 
+from dataclasses import dataclass
 import re
 
-from dbspec.errors import DBSpecParseError
+from dbspec.errors import DBSpecModelError, DBSpecParseError
 from dbspec.models import (
     Column,
     ForeignKey,
@@ -40,6 +41,14 @@ CSV_IDENTIFIER_LIST = rf"{VALID_IDENTIFIER}(?:\s*,\s*{VALID_IDENTIFIER})*"
 VALID_SCHEMA_TABLE = rf"({VALID_IDENTIFIER})\.({VALID_IDENTIFIER})"
 
 FOREIGN_KEY_ACTION = r"(?:CASCADE|NO\s+ACTION|SET\s+DEFAULT|SET\s+NULL)"
+
+
+@dataclass(frozen=True)
+class DBSpecLine:
+    """A single line in a DBSpec file, with its line number and text."""
+
+    line_no: int
+    text: str
 
 
 def _extract_fullmatch_groups(
@@ -98,6 +107,100 @@ def _parse_csv_identifier_list(value: str, name: str) -> tuple[str, ...]:
     return tuple(
         re.findall(VALID_IDENTIFIER, identifier_list, flags=re.IGNORECASE)
     )
+
+
+def parse_table_file(lines: list[DBSpecLine]) -> Table:
+    """Parse the contents of a DBSpec file defining a table.
+
+    See `docs/grammar.md#tables` for the expected syntax.
+    """
+    # initialise model and error collections
+    table: Table | None = None
+    columns: list[Column] = []
+    keys: list[Key] = []
+    parse_errors: list[DBSpecParseError] = []
+    model_errors: list[DBSpecModelError] = []
+
+    # helpers for parsing and collecting declarations
+    def collect_column(line: DBSpecLine) -> None:
+        columns.append(parse_column_declaration(line.text))
+
+    def collect_key(line: DBSpecLine) -> None:
+        keys.append(parse_key_declaration(line.text))
+
+    # category pattern-to-collector mapping
+    category_functions = [(r"COLUMNS", collect_column), (r"KEYS", collect_key)]
+
+    # separate the first line containing the table declaration
+    first_line, *lines = lines
+
+    # attempt to parse the table declaration
+    try:
+        table = parse_table_declaration(first_line.text)
+    except DBSpecParseError as e:
+        parse_errors.append(e)
+    except DBSpecModelError as e:
+        model_errors.append(e)
+
+    # attempt to parse the remaining lines
+    # start by parsing as column declarations, switch when
+    # encountering a category switch ("@@ <CATEGORY>")
+    collector = collect_column
+    for line in lines:
+        # handle a category switch
+        if line.text.startswith("@@"):
+            # parse the category and reset the collector function
+            for pattern, function in category_functions:
+                if re.fullmatch(
+                    rf"@@\s*{pattern}", line.text, flags=re.IGNORECASE
+                ):
+                    collector = function
+                    # stop checking other patterns once a match is found
+                    break
+
+            # handle an unknown category (if the loop was not broken);
+            # unset the collector so the following lines are skipped
+            else:
+                collector = None
+                parse_errors.append(
+                    DBSpecParseError(f"Unrecognized category: {line.text!r}")
+                )
+
+            # don't attempt to parse the category line as a declaration
+            continue
+
+        # if we are currently in an unknown category,
+        # skip lines until the next category is reached
+        if collector is None:
+            continue
+
+        # attempt to parse the line using the current category collector
+        try:
+            collector(line)
+        except DBSpecParseError as e:
+            parse_errors.append(e)
+        except DBSpecModelError as e:
+            model_errors.append(e)
+
+    # TODO: file-level validation:
+    #  at least one column
+    #  no duplicate columns
+    #  at most one identity column
+    #  at most one primary key
+
+    # raise errors before building the table
+    if parse_errors or model_errors:
+        raise DBSpecFileError(parse_errors + model_errors)
+
+    # build table
+    if table is None:
+        msg = "Table file did not produce a table model"
+        raise RuntimeError(msg)
+    for column in columns:
+        table.add_column(column)
+    for key in keys:
+        table.add_key(key)
+    return table
 
 
 def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
