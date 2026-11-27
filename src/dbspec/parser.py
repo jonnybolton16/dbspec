@@ -6,7 +6,11 @@ Utilities for parsing DBSpec files into database schema model objects.
 from dataclasses import dataclass
 import re
 
-from dbspec.errors import DBSpecModelError, DBSpecParseError
+from dbspec.errors import (
+    DBSpecFileError,
+    DBSpecModelError,
+    DBSpecParseError,
+)
 from dbspec.models import (
     Column,
     ForeignKey,
