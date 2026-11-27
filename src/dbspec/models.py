@@ -9,6 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import StrEnum
 
+from dbspec.errors import DBSpecModelError
+
 
 @dataclass(frozen=True)
 class Identity:
@@ -53,6 +55,17 @@ class Key:
 
     columns: tuple[str, ...]
 
+    def __post_init__(self) -> None:
+        """Validate that the key has at least one column.
+
+        Existence of column(s) is checked at table level.
+        """
+        object.__setattr__(self, "columns", tuple(self.columns))
+
+        if not self.columns:
+            msg = f"{type(self).__name__} must have at least one column"
+            raise DBSpecModelError(msg)
+
 
 @dataclass(frozen=True)
 class PrimaryKey(Key):
@@ -72,6 +85,25 @@ class ForeignKey(Key):
     referenced_columns: tuple[str, ...]
     on_delete: ReferentialAction = ReferentialAction.NO_ACTION
     on_update: ReferentialAction = ReferentialAction.NO_ACTION
+
+    def __post_init__(self) -> None:
+        """Validate the column counts on both sides of the reference.
+
+        Existence and validity of reference targets and referential
+        actions are checked at table/database level.
+        """
+        super().__post_init__()
+
+        object.__setattr__(
+            self, "referenced_columns", tuple(self.referenced_columns)
+        )
+
+        if len(self.columns) != len(self.referenced_columns):
+            msg = (
+                f"{type(self).__name__} must have the same "
+                "number of local and referenced columns"
+            )
+            raise DBSpecModelError(msg)
 
 
 @dataclass(frozen=True)
