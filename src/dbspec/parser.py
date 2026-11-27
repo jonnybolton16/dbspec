@@ -1,6 +1,8 @@
 """DBSpec parser utilities.
 
-Utilities for parsing DBSpec files into database schema model objects.
+Utilities for parsing DBSpec file content into database schema model
+objects. Files are discovered and read by the loader, with their content
+passed to the parser.
 """
 
 from collections import defaultdict
