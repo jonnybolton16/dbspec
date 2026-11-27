@@ -1,13 +1,24 @@
 """DBSpec parser utilities.
 
-Utilities for parsing DBSpec files into database schema model objects.
+Utilities for parsing DBSpec file content into database schema model
+objects. Files are discovered and read by the loader, with their content
+passed to the parser.
 """
 
+from collections import defaultdict
+from dataclasses import dataclass
+from itertools import chain
+from pathlib import Path
 import re
 
-from dbspec.errors import DBSpecParseError
+from dbspec.errors import (
+    DBSpecFileError,
+    DBSpecModelError,
+    DBSpecParseError,
+)
 from dbspec.models import (
     Column,
+    DBSpecFileModel,
     ForeignKey,
     Identity,
     Key,
@@ -33,13 +44,21 @@ VALID_IDENTIFIER = rf"(?:[A-Z_][A-Z0-9_]*|{BRACKETED_IDENTIFIER})"
 # Y -> at least one character enclosed in square brackets, allowing
 #      escaped closing square brackets with ]]
 
-VALID_SCHEMA_TABLE = rf"({VALID_IDENTIFIER})\.({VALID_IDENTIFIER})"
-
 # in a CSV identifier list, at least one valid identifier
 # is required; any others must be comma-separated
 CSV_IDENTIFIER_LIST = rf"{VALID_IDENTIFIER}(?:\s*,\s*{VALID_IDENTIFIER})*"
 
+VALID_SCHEMA_TABLE = rf"({VALID_IDENTIFIER})\.({VALID_IDENTIFIER})"
+
 FOREIGN_KEY_ACTION = r"(?:CASCADE|NO\s+ACTION|SET\s+DEFAULT|SET\s+NULL)"
+
+
+@dataclass(frozen=True)
+class DBSpecLine:
+    """A single line in a DBSpec file, with its line number and text."""
+
+    line_no: int
+    text: str
 
 
 def _extract_fullmatch_groups(
@@ -52,19 +71,19 @@ def _extract_fullmatch_groups(
     captures groups; otherwise, raise `DBSpecParseError`.
 
     Args:
-        pattern: The regex pattern to match, containing the capturing
-          groups to be extracted.
-        value: The string to match against the pattern.
-        msg: The error message to raise if the match fails.
-        flags: Optional regex flags.
+      pattern: The regex pattern to match, containing the capturing
+        groups to be extracted.
+      value: The string to match against the pattern.
+      msg: The error message to raise if the match fails.
+      flags: Optional regex flags.
 
     Returns:
-        A tuple containing the matched groups, with length equal to the
-          number of capturing groups in the pattern.
+      A tuple containing the matched groups, with length equal to the
+        number of capturing groups in the pattern.
 
     Raises:
-        DBSpecParseError: If the provided value does not fully match the
-          expected pattern.
+      DBSpecParseError: If the provided value does not fully match the
+        expected pattern.
     """
     match = re.fullmatch(pattern, value, flags=flags)
     if match is None:
@@ -72,19 +91,19 @@ def _extract_fullmatch_groups(
     return match.groups()
 
 
-def _parse_csv_identifier_list(value: str, name: str) -> list[str]:
+def _parse_csv_identifier_list(value: str, name: str) -> tuple[str, ...]:
     """Parse a comma-separated list of identifiers.
 
     Args:
-        value: The comma-separated list of identifiers to parse.
-        name: The name of the list being parsed, used in error messages.
+      value: The comma-separated list of identifiers to parse.
+      name: The name of the list being parsed, used in error messages.
 
     Returns:
-        A list of individual identifiers extracted from the input value.
+      A tuple of individual identifiers extracted from the input value.
 
     Raises:
-        DBSpecParseError: If the provided value is not a valid comma-
-          separated list of valid identifiers.
+      DBSpecParseError: If the provided value is not a valid comma-
+        separated list of valid identifiers.
     """
     # match either a bare or parenthesized list
     groups = _extract_fullmatch_groups(
@@ -95,10 +114,252 @@ def _parse_csv_identifier_list(value: str, name: str) -> list[str]:
     )
     identifier_list = groups[0] or groups[1]
 
-    return re.findall(VALID_IDENTIFIER, identifier_list, flags=re.IGNORECASE)
+    return tuple(
+        re.findall(VALID_IDENTIFIER, identifier_list, flags=re.IGNORECASE)
+    )
 
 
-def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
+def _unrecognized_category_error(
+    category_line: DBSpecLine, next_category_line: DBSpecLine | None = None
+) -> DBSpecParseError:
+    """Return a parse error for an unrecognized category.
+
+    The interval
+      `[category_line.line_no + 1, next_category_line.line_no - 1]`
+    represents the skipped lines making up the unrecognized category. A
+    `next_category_line` of `None` indicates that the unrecognized
+    category extends to the end of the file.
+
+    Args:
+      category_line: The line containing the unrecognized category.
+      next_category_line: The line containing the next category, if any.
+
+    Returns:
+      A `DBSpecParseError` detailing the unrecognized category, and the
+        skipped lines, if any.
+    """
+    start = category_line.line_no + 1
+    end = (
+        float("inf")
+        if next_category_line is None
+        else next_category_line.line_no - 1
+    )
+    skip_range = (
+        ""
+        if end < start
+        else "; skipped "
+        + (
+            f"line {start}"
+            if start == end
+            else f"lines {start} to end"
+            if end == float("inf")
+            else f"lines {start} to {end}"
+        )
+    )
+    return DBSpecParseError(
+        f"Unrecognized category: {category_line.text!r}{skip_range}"
+    )
+
+
+def parse_table_file(lines: list[DBSpecLine]) -> Table:
+    """Parse the contents of a DBSpec file defining a table.
+
+    See `docs/grammar.md#tables` for the expected syntax.
+    """
+    # initialise model and error collections
+    table: Table | None = None
+    columns: defaultdict[str, list[Column]] = defaultdict(list)
+    keys: defaultdict[type[Key], list[Key]] = defaultdict(list)
+    parse_errors: list[DBSpecParseError] = []
+    model_errors: list[DBSpecModelError] = []
+
+    # helpers for parsing and collecting declarations
+    def collect_column(line: DBSpecLine) -> None:
+        column = parse_column_declaration(line.text)
+        columns[column.name].append(column)
+
+    def collect_key(line: DBSpecLine) -> None:
+        key = parse_key_declaration(line.text)
+        keys[type(key)].append(key)
+
+    # category pattern-to-collector mapping
+    # and unknown-category line tracker
+    category_functions = [(r"COLUMNS", collect_column), (r"KEYS", collect_key)]
+    unknown_category_line: DBSpecLine | None = None
+
+    # separate the first line containing the table declaration
+    first_line, *lines = lines
+
+    # attempt to parse the table declaration
+    try:
+        table = parse_table_declaration(first_line.text)
+    except DBSpecParseError as e:
+        parse_errors.append(e)
+    except DBSpecModelError as e:
+        model_errors.append(e)
+
+    # attempt to parse the remaining lines
+    # start by parsing as column declarations, switch when
+    # encountering a category switch ("@@ <CATEGORY>")
+    collector = collect_column
+    for line in lines:
+        # handle a category switch
+        if line.text.startswith("@@"):
+            # collect the error from a previous unrecognized category,
+            # if applicable, now that we know when that category ends
+            if unknown_category_line is not None:
+                parse_errors.append(
+                    _unrecognized_category_error(unknown_category_line, line)
+                )
+                unknown_category_line = None
+
+            # parse the category and reset the collector function
+            for pattern, function in category_functions:
+                if re.fullmatch(
+                    rf"@@\s*{pattern}", line.text, flags=re.IGNORECASE
+                ):
+                    collector = function
+                    # stop checking other patterns once a match is found
+                    break
+
+            # handle an unknown category (if the loop was not broken);
+            # unset the collector so the following lines are skipped
+            # store the unknown category line for later error reporting
+            else:
+                collector = None
+                unknown_category_line = line
+
+            # don't attempt to parse the category line as a declaration
+            continue
+
+        # if we are currently in an unknown category,
+        # skip lines until the next category is reached
+        if unknown_category_line is not None:
+            continue
+
+        # attempt to parse the line using the current category collector
+        try:
+            collector(line)
+        except DBSpecParseError as e:
+            parse_errors.append(e)
+        except DBSpecModelError as e:
+            model_errors.append(e)
+
+    # after parsing all lines, we may still be in
+    # an unknown category, so collect its error
+    if unknown_category_line is not None:
+        parse_errors.append(
+            _unrecognized_category_error(unknown_category_line)
+        )
+
+    # raise line-level errors before carrying out file-level validation
+    if parse_errors or model_errors:
+        raise DBSpecFileError(parse_errors + model_errors)
+
+    # file-level validation:
+    #  at least one column
+    #  no duplicate columns
+    #  at most one identity column
+    #  at most one primary key
+    if not columns:
+        model_errors.append(
+            DBSpecModelError("Table files must contain at least one column")
+        )
+    for column, items in columns.items():
+        if len(items) > 1:
+            model_errors.append(
+                DBSpecModelError(f"Duplicate column: {column!r}")
+            )
+    if (
+        len(
+            [
+                item
+                for item in chain.from_iterable(columns.values())
+                if item.identity
+            ]
+        )
+        > 1
+    ):
+        model_errors.append(
+            DBSpecModelError("Multiple identity columns declared")
+        )
+    if len(keys[PrimaryKey]) > 1:
+        model_errors.append(DBSpecModelError("Multiple primary keys declared"))
+
+    # raise file-level validation errors before building the table
+    if model_errors:
+        raise DBSpecFileError(model_errors)
+
+    # build table: add columns first, so keys can validate against them
+    if table is None:
+        msg = "Table file did not produce a table model"
+        raise RuntimeError(msg)
+    for column in chain.from_iterable(columns.values()):
+        try:
+            table.add_column(column)
+        except DBSpecModelError as e:
+            model_errors.append(e)
+    for key in chain.from_iterable(keys.values()):
+        try:
+            table.add_key(key)
+        except DBSpecModelError as e:
+            model_errors.append(e)
+
+    # raise errors collected during model build
+    if model_errors:
+        raise DBSpecFileError(model_errors)
+
+    return table
+
+
+FILE_TYPE_PARSERS = ((r"TABLE", parse_table_file),)
+
+
+def parse_dbspec_file(path: Path) -> DBSpecFileModel:
+    """Parse the contents of a DBSpec file.
+
+    The keyword present in the first non-blank, non-comment line of the
+    file identifies the DBSpec file type (e.g. table, trigger, stored
+    procedure; see `docs/grammar.md`). This helper reads the file and
+    dispatches its contents to the appropriate parser.
+
+    Raises:
+      DBSpecFileError: If
+       - the file cannot be read
+       - no content is found
+       - the DBSpec file type cannot be determined or is unrecognized
+       - any parse or model errors are encountered in the file (these
+         are aggregated and raised together)
+    """
+    # attempt to read the file
+    try:
+        text = path.read_text()
+    except (OSError, UnicodeDecodeError) as e:
+        raise DBSpecFileError(str(e)) from e
+
+    # split file into non-blank, non-comment lines with line numbers
+    lines = [
+        DBSpecLine(line_no, stripped)
+        for line_no, line in enumerate(text.splitlines(), start=1)
+        if (stripped := line.strip()) and not stripped.startswith("--")
+    ]
+    if not lines:
+        msg = "No non-blank, non-comment lines found"
+        raise DBSpecFileError(msg)
+
+    # determine the file type from the first line
+    # and dispatch to the appropriate parser
+    first_line = lines[0]
+    for pattern, file_parser in FILE_TYPE_PARSERS:
+        if re.match(rf"{pattern}\b", first_line.text, flags=re.IGNORECASE):
+            return file_parser(lines)
+
+    # raise if unknown file type found
+    msg = f"Unrecognized DBSpec file type: {first_line.text!r}"
+    raise DBSpecFileError(msg)
+
+
+def parse_column_declaration(declaration: str) -> Column:
     """Parse a column declaration into a `Column` object.
 
     See `docs/columns.md` for the expected syntax.
@@ -231,7 +492,7 @@ def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
     )
 
 
-def parse_key_declaration(declaration: str) -> Key:  # noqa: C901
+def parse_key_declaration(declaration: str) -> Key:
     """Parse a key declaration into a `Key` object.
 
     See `docs/keys.md` for the expected syntax.

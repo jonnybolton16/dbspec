@@ -35,12 +35,15 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "COM812", # trailing commas, use formatter instead
-    "CPY001", # copyright notice, not required
-    "ERA001", # commented-out code, useful when developing
-    "FIX002", # todos, useful when developing
-    "TD002",  # todo author, not required
-    "TD003",  # todo link, not required
+    "C901",    # complex functions, allowed
+    "COM812",  # trailing commas, use formatter instead
+    "CPY001",  # copyright notice, not required
+    "ERA001",  # commented-out code, useful when developing
+    "FIX002",  # todos, useful when developing
+    "PLR0912", # complex functions, allowed
+    "PLR0915", # complex functions, allowed
+    "TD002",   # todo author, not required
+    "TD003",   # todo link, not required
 ]
 
 [tool.ruff.lint.isort]
