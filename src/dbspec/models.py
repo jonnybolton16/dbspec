@@ -1,7 +1,7 @@
 """DBSpec database schema model objects.
 
-Defines the native Python objects used to represent SQL database schema
-objects, including tables, columns and keys.
+Defines Python objects for representing SQL database schema elements,
+including tables, columns, and keys.
 """
 
 from __future__ import annotations

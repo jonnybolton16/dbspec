@@ -33,11 +33,11 @@ VALID_IDENTIFIER = rf"(?:[A-Z_][A-Z0-9_]*|{BRACKETED_IDENTIFIER})"
 # Y -> at least one character enclosed in square brackets, allowing
 #      escaped closing square brackets with ]]
 
-VALID_SCHEMA_TABLE = rf"({VALID_IDENTIFIER})\.({VALID_IDENTIFIER})"
-
 # in a CSV identifier list, at least one valid identifier
 # is required; any others must be comma-separated
 CSV_IDENTIFIER_LIST = rf"{VALID_IDENTIFIER}(?:\s*,\s*{VALID_IDENTIFIER})*"
+
+VALID_SCHEMA_TABLE = rf"({VALID_IDENTIFIER})\.({VALID_IDENTIFIER})"
 
 FOREIGN_KEY_ACTION = r"(?:CASCADE|NO\s+ACTION|SET\s+DEFAULT|SET\s+NULL)"
 
@@ -52,19 +52,19 @@ def _extract_fullmatch_groups(
     captures groups; otherwise, raise `DBSpecParseError`.
 
     Args:
-        pattern: The regex pattern to match, containing the capturing
-          groups to be extracted.
-        value: The string to match against the pattern.
-        msg: The error message to raise if the match fails.
-        flags: Optional regex flags.
+      pattern: The regex pattern to match, containing the capturing
+        groups to be extracted.
+      value: The string to match against the pattern.
+      msg: The error message to raise if the match fails.
+      flags: Optional regex flags.
 
     Returns:
-        A tuple containing the matched groups, with length equal to the
-          number of capturing groups in the pattern.
+      A tuple containing the matched groups, with length equal to the
+        number of capturing groups in the pattern.
 
     Raises:
-        DBSpecParseError: If the provided value does not fully match the
-          expected pattern.
+      DBSpecParseError: If the provided value does not fully match the
+        expected pattern.
     """
     match = re.fullmatch(pattern, value, flags=flags)
     if match is None:
@@ -76,15 +76,15 @@ def _parse_csv_identifier_list(value: str, name: str) -> list[str]:
     """Parse a comma-separated list of identifiers.
 
     Args:
-        value: The comma-separated list of identifiers to parse.
-        name: The name of the list being parsed, used in error messages.
+      value: The comma-separated list of identifiers to parse.
+      name: The name of the list being parsed, used in error messages.
 
     Returns:
-        A list of individual identifiers extracted from the input value.
+      A list of individual identifiers extracted from the input value.
 
     Raises:
-        DBSpecParseError: If the provided value is not a valid comma-
-          separated list of valid identifiers.
+      DBSpecParseError: If the provided value is not a valid comma-
+        separated list of valid identifiers.
     """
     # match either a bare or parenthesized list
     groups = _extract_fullmatch_groups(
