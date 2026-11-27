@@ -12,6 +12,14 @@ from enum import StrEnum
 from dbspec.errors import DBSpecModelError
 
 
+class DBSpecFileModel:
+    """Base class for DBSpec file type models.
+
+    Models representing the main component of a DBSpec file, such as
+    `Table`, should inherit from this class.
+    """
+
+
 @dataclass(frozen=True)
 class Identity:
     """A column identity definition.
@@ -126,7 +134,7 @@ class TableName:
 
 
 @dataclass(frozen=True)
-class Table:
+class Table(DBSpecFileModel):
     """A database table definition."""
 
     identifier: TableName
