@@ -14,7 +14,9 @@ from tests.utils import (
     parametrize_cases,
 )
 
-VALID_IDENTIFIER_LIST = [identifier for identifier, _ in VALID_IDENTIFIERS]
+VALID_IDENTIFIER_TUPLE = tuple(
+    identifier for identifier, _ in VALID_IDENTIFIERS
+)
 
 # ---------------------
 # Error message regexes
@@ -132,7 +134,7 @@ def test_valid_pk_keyword_variant(keyword: str) -> None:
     key = parse_key_declaration(f"{keyword} id")
 
     assert isinstance(key, PrimaryKey)
-    assert key.columns == ["id"]
+    assert key.columns == ("id",)
 
 
 ### whitespace between keyword and column list ###
@@ -142,7 +144,7 @@ def test_valid_pk_keyword_whitespace(space: str) -> None:
     key = parse_key_declaration(f"PRIMARY KEY{space}id")
 
     assert isinstance(key, PrimaryKey)
-    assert key.columns == ["id"]
+    assert key.columns == ("id",)
 
 
 ### valid identifiers, with/without brackets ###
@@ -155,7 +157,7 @@ def test_valid_pk_single(left: str, right: str, column: str) -> None:
     key = parse_key_declaration(f"PRIMARY KEY{left}{column}{right}")
 
     assert isinstance(key, PrimaryKey)
-    assert key.columns == [column]
+    assert key.columns == (column,)
 
 
 ### valid multi-column declarations, with/without brackets ###
@@ -171,11 +173,11 @@ def test_valid_pk_multi(left: str, right: str, space: str) -> None:
     """
     for sep in (",", f"{space},", f",{space}"):
         key = parse_key_declaration(
-            f"PRIMARY KEY{left}{sep.join(VALID_IDENTIFIER_LIST)}{right}"
+            f"PRIMARY KEY{left}{sep.join(VALID_IDENTIFIER_TUPLE)}{right}"
         )
 
         assert isinstance(key, PrimaryKey)
-        assert key.columns == VALID_IDENTIFIER_LIST
+        assert key.columns == VALID_IDENTIFIER_TUPLE
 
 
 ### column name contains key-type ###
@@ -196,7 +198,7 @@ def test_valid_pk_key_type_like_name(column: str) -> None:
     key = parse_key_declaration(f"PRIMARY KEY {column}")
 
     assert isinstance(key, PrimaryKey)
-    assert key.columns == [column]
+    assert key.columns == (column,)
 
 
 ### valid whitespace around brackets ###
@@ -212,7 +214,7 @@ def test_valid_pk_bracket_whitespace(space: str) -> None:
         key = parse_key_declaration(f"PRIMARY KEY {column}")
 
         assert isinstance(key, PrimaryKey)
-        assert key.columns == ["id"]
+        assert key.columns == ("id",)
 
 
 ### invalid identifiers ###
@@ -228,7 +230,7 @@ def test_invalid_pk_single(column: str) -> None:
 )
 def test_invalid_pk_multi(index: int) -> None:
     """Reject a multi-column primary key using an invalid identifier."""
-    columns = list(reversed(VALID_IDENTIFIER_LIST))
+    columns = list(reversed(VALID_IDENTIFIER_TUPLE))
     columns[index] = INVALID_IDENTIFIERS[index][0]
 
     reject(f"PRIMARY KEY ({', '.join(columns)})", MSG_PK_COLUMN_LIST)
@@ -268,7 +270,7 @@ def test_valid_uq_keyword_variant(keyword: str) -> None:
     key = parse_key_declaration(f"{keyword} id")
 
     assert isinstance(key, UniqueKey)
-    assert key.columns == ["id"]
+    assert key.columns == ("id",)
 
 
 ### KEY keyword passed ###
@@ -283,7 +285,7 @@ def test_valid_uq_single() -> None:
     key = parse_key_declaration("UNIQUE [column name]")
 
     assert isinstance(key, UniqueKey)
-    assert key.columns == ["[column name]"]
+    assert key.columns == ("[column name]",)
 
 
 def test_valid_uq_multi() -> None:
@@ -291,7 +293,7 @@ def test_valid_uq_multi() -> None:
     key = parse_key_declaration("UNIQUE (id, [column name], code)")
 
     assert isinstance(key, UniqueKey)
-    assert key.columns == ["id", "[column name]", "code"]
+    assert key.columns == ("id", "[column name]", "code")
 
 
 def test_invalid_uq_malformed() -> None:
@@ -318,7 +320,7 @@ def test_valid_fk_keyword_variant(keyword: str) -> None:
     key = parse_key_declaration(f"{keyword} id REFERENCES dbo.users(id)")
 
     assert isinstance(key, ForeignKey)
-    assert key.columns == ["id"]
+    assert key.columns == ("id",)
 
 
 @parametrize_cases(
@@ -335,7 +337,7 @@ def test_valid_fk_references_variant(keyword: str, space: str) -> None:
     )
 
     assert isinstance(key, ForeignKey)
-    assert key.columns == ["id"]
+    assert key.columns == ("id",)
 
 
 ### invalid REFERENCES counts ###
@@ -360,7 +362,7 @@ def test_valid_fk_bracketed_references() -> None:
     )
 
     assert isinstance(key, ForeignKey)
-    assert key.columns == ["[references]"]
+    assert key.columns == ("[references]",)
 
 
 def test_invalid_fk_bracketed_references() -> None:
@@ -374,7 +376,7 @@ def test_valid_fk_single() -> None:
     key = parse_key_declaration("FOREIGN KEY(id)REFERENCES dbo.users(id)")
 
     assert isinstance(key, ForeignKey)
-    assert key.columns == ["id"]
+    assert key.columns == ("id",)
 
 
 def test_valid_fk_multi() -> None:
@@ -384,7 +386,7 @@ def test_valid_fk_multi() -> None:
     )
 
     assert isinstance(key, ForeignKey)
-    assert key.columns == ["tenant_id", "user_id"]
+    assert key.columns == ("tenant_id", "user_id")
 
 
 @parametrize_cases(
@@ -479,16 +481,16 @@ def test_valid_fk_references_column_brackets(left: str, right: str) -> None:
     )
 
     assert isinstance(key, ForeignKey)
-    assert key.columns == ["id"]
-    assert key.referenced_columns == ["ref_id"]
+    assert key.columns == ("id",)
+    assert key.referenced_columns == ("ref_id",)
 
     key = parse_key_declaration(
         f"FOREIGN KEY a, b REFERENCES dbo.users{left}c, d{right}"
     )
 
     assert isinstance(key, ForeignKey)
-    assert key.columns == ["a", "b"]
-    assert key.referenced_columns == ["c", "d"]
+    assert key.columns == ("a", "b")
+    assert key.referenced_columns == ("c", "d")
 
 
 @parametrize_cases(
@@ -573,7 +575,7 @@ def test_valid_fk_action_directly_after_bracket() -> None:
     )
 
     assert isinstance(key, ForeignKey)
-    assert key.referenced_columns == ["id"]
+    assert key.referenced_columns == ("id",)
     assert key.on_delete == "CASCADE"
 
 
