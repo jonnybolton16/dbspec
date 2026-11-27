@@ -33,6 +33,10 @@ class Column:
     identity: Identity | None = None
     default: str | None = None
 
+    def __str__(self) -> str:
+        """Return the column name."""
+        return self.name
+
 
 class ReferentialAction(StrEnum):
     """A foreign key referential action definition.
@@ -116,6 +120,10 @@ class TableName:
     schema: str
     name: str
 
+    def __str__(self) -> str:
+        """Return the fully-qualified table name."""
+        return f"{self.schema}.{self.name}"
+
 
 @dataclass(frozen=True)
 class Table:
@@ -126,6 +134,13 @@ class Table:
     primary_key: PrimaryKey | None = None
     unique_keys: list[UniqueKey] = field(default_factory=list)
     foreign_keys: list[ForeignKey] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        """Return the fully-qualified table name.
+
+        Delegate to the identifier's __str__ method.
+        """
+        return str(self.identifier)
 
     def add_column(self, column: Column) -> None:
         """Add a column to the table.
