@@ -72,7 +72,7 @@ def _extract_fullmatch_groups(
     return match.groups()
 
 
-def _parse_csv_identifier_list(value: str, name: str) -> list[str]:
+def _parse_csv_identifier_list(value: str, name: str) -> tuple[str, ...]:
     """Parse a comma-separated list of identifiers.
 
     Args:
@@ -80,7 +80,7 @@ def _parse_csv_identifier_list(value: str, name: str) -> list[str]:
       name: The name of the list being parsed, used in error messages.
 
     Returns:
-      A list of individual identifiers extracted from the input value.
+      A tuple of individual identifiers extracted from the input value.
 
     Raises:
       DBSpecParseError: If the provided value is not a valid comma-
@@ -95,7 +95,9 @@ def _parse_csv_identifier_list(value: str, name: str) -> list[str]:
     )
     identifier_list = groups[0] or groups[1]
 
-    return re.findall(VALID_IDENTIFIER, identifier_list, flags=re.IGNORECASE)
+    return tuple(
+        re.findall(VALID_IDENTIFIER, identifier_list, flags=re.IGNORECASE)
+    )
 
 
 def parse_column_declaration(declaration: str) -> Column:  # noqa: C901
