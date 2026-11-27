@@ -6,6 +6,7 @@ Utilities for parsing DBSpec files into database schema model objects.
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import chain
+from pathlib import Path
 import re
 
 from dbspec.errors import (
@@ -15,6 +16,7 @@ from dbspec.errors import (
 )
 from dbspec.models import (
     Column,
+    DBSpecFileModel,
     ForeignKey,
     Identity,
     Key,
@@ -306,6 +308,53 @@ def parse_table_file(lines: list[DBSpecLine]) -> Table:
         raise DBSpecFileError(model_errors)
 
     return table
+
+
+FILE_TYPE_PARSERS = ((r"TABLE", parse_table_file),)
+
+
+def parse_dbspec_file(path: Path) -> DBSpecFileModel:
+    """Parse the contents of a DBSpec file.
+
+    The keyword present in the first non-blank, non-comment line of the
+    file identifies the DBSpec file type (e.g. table, trigger, stored
+    procedure; see `docs/grammar.md`). This helper reads the file and
+    dispatches its contents to the appropriate parser.
+
+    Raises:
+      DBSpecFileError: If
+       - the file cannot be read
+       - no content is found
+       - the DBSpec file type cannot be determined or is unrecognized
+       - any parse or model errors are encountered in the file (these
+         are aggregated and raised together)
+    """
+    # attempt to read the file
+    try:
+        text = path.read_text()
+    except (OSError, UnicodeDecodeError) as e:
+        raise DBSpecFileError(str(e)) from e
+
+    # split file into non-blank, non-comment lines with line numbers
+    lines = [
+        DBSpecLine(line_no, stripped)
+        for line_no, line in enumerate(text.splitlines(), start=1)
+        if (stripped := line.strip()) and not stripped.startswith("--")
+    ]
+    if not lines:
+        msg = "No non-blank, non-comment lines found"
+        raise DBSpecFileError(msg)
+
+    # determine the file type from the first line
+    # and dispatch to the appropriate parser
+    first_line = lines[0]
+    for pattern, file_parser in FILE_TYPE_PARSERS:
+        if re.match(rf"{pattern}\b", first_line.text, flags=re.IGNORECASE):
+            return file_parser(lines)
+
+    # raise if unknown file type found
+    msg = f"Unrecognized DBSpec file type: {first_line.text!r}"
+    raise DBSpecFileError(msg)
 
 
 def parse_column_declaration(declaration: str) -> Column:
